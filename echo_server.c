@@ -23,6 +23,7 @@
 #define BUF_SIZE 4096
 
 int close_socket(int);
+void cleanup_socks(int, int);
 
 int main(int argc, char* argv[]) {
   int server_sock, min_sock, max_sock, new_sock;
@@ -47,7 +48,7 @@ int main(int argc, char* argv[]) {
 
   // configure socket for reuse before bind
   if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0) {
-    close_socket(server_sock);
+    cleanup_socks(min_sock, max_sock);
     fprintf(stderr, "setsockopt(SO_REUSEADDR) failed.\n");
     return EXIT_FAILURE;
   }
@@ -55,14 +56,14 @@ int main(int argc, char* argv[]) {
   addr.sin_port = htons(ECHO_PORT);
   addr.sin_addr.s_addr = INADDR_ANY;
   if (bind(server_sock, (struct sockaddr *) &addr, sizeof(addr))) {
-    close_socket(server_sock);
+    cleanup_socks(min_sock, max_sock);
     fprintf(stderr, "Failed binding socket.\n");
     return EXIT_FAILURE;
   }
   fprintf(stdout, "server socket bound.\n");
 
   if (listen(server_sock, 5)) {
-    close_socket(server_sock);
+    cleanup_socks(min_sock, max_sock);
     fprintf(stderr, "Error listening on socket.\n");
     return EXIT_FAILURE;
   }
@@ -84,7 +85,7 @@ int main(int argc, char* argv[]) {
           fprintf(stdout, "connection request.\n");
           cli_size = sizeof(cli_addr);
           if ((new_sock = accept(server_sock, (struct sockaddr *) &cli_addr, &cli_size)) == -1) {
-            close(server_sock);
+            cleanup_socks(min_sock, max_sock);
             fprintf(stderr, "Error accepting connection.\n");
             return EXIT_FAILURE;
           } else {
@@ -107,9 +108,7 @@ int main(int argc, char* argv[]) {
             FD_CLR(i, &master_set);
           } else { // we have data to read
             if (send(i, buf, nbytes, 0) != nbytes) {
-              //TODO: close all sockets
-              close_socket(i);
-              close_socket(server_sock);
+              cleanup_socks(min_sock, max_sock);
               fprintf(stderr, "Error sending to client.\n");
               return EXIT_FAILURE;
             }
@@ -121,8 +120,7 @@ int main(int argc, char* argv[]) {
     } // iterating over socket file descriptors
   } // infinite for loop
 
-
-  close_socket(server_sock);
+  cleanup_socks(min_sock, max_sock);
   return EXIT_SUCCESS;
 }
 
@@ -132,4 +130,11 @@ int close_socket(int sock) {
     return 1;
   }
   return 0;
+}
+
+void cleanup_socks(int min_sock, int max_sock) {
+  int i;
+  for (i = min_sock; i <= max_sock; i++) {
+    close_socket(i);
+  }
 }
