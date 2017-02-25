@@ -1,3 +1,7 @@
+# builds
+echo_server
+echo_client
+
 # Object files
 *.o
 *.ko
