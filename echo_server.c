@@ -26,8 +26,6 @@ int close_socket(int);
 
 int main(int argc, char* argv[]) {
   int server_sock, min_sock, max_sock, new_sock;
-  // select changes the fd_set.
-  // we need master to store info and read_set to indicate socketsready to read
   fd_set master_set, read_set;
   socklen_t cli_size;
   struct sockaddr_in addr, cli_addr;
@@ -36,26 +34,26 @@ int main(int argc, char* argv[]) {
   ssize_t nbytes;
 
   fprintf(stdout, "----- Echo Server -----\n");
-
-  /* all networked programs must create a socket */
   if ((server_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
     fprintf(stderr, "Failed creating socket.\n");
     return EXIT_FAILURE;
   }
   fprintf(stdout, "server socket created: %d.\n", server_sock);
+  FD_ZERO(&master_set);
+  FD_ZERO(&read_set);
+  FD_SET(server_sock, &master_set);
+  min_sock = server_sock;
+  max_sock = server_sock;
 
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(ECHO_PORT);
-  addr.sin_addr.s_addr = INADDR_ANY;
-
-  /* servers bind sockets to ports---notify the OS they accept connections */
-  // configure socket for reuse (http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t)
+  // configure socket for reuse before bind
   if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0) {
     close_socket(server_sock);
     fprintf(stderr, "setsockopt(SO_REUSEADDR) failed.\n");
     return EXIT_FAILURE;
   }
-
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(ECHO_PORT);
+  addr.sin_addr.s_addr = INADDR_ANY;
   if (bind(server_sock, (struct sockaddr *) &addr, sizeof(addr))) {
     close_socket(server_sock);
     fprintf(stderr, "Failed binding socket.\n");
@@ -69,12 +67,6 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
   fprintf(stdout, "server socket listening.\n");
-
-  FD_ZERO(&master_set);
-  FD_ZERO(&read_set);
-  FD_SET(server_sock, &master_set);
-  min_sock = server_sock;
-  max_sock = server_sock;
 
   for(;;) {
     read_set = master_set;
@@ -132,46 +124,6 @@ int main(int argc, char* argv[]) {
 
   close_socket(server_sock);
   return EXIT_SUCCESS;
-
-
-
-
-  // /* finally, loop waiting for input and then write it back */
-  // while (1) {
-  //    cli_size = sizeof(cli_addr);
-  //    if ((client_sock = accept(server_sock, (struct sockaddr *) &cli_addr, &cli_size)) == -1) {
-  //        close(server_sock);
-  //        fprintf(stderr, "Error accepting connection.\n");
-  //        return EXIT_FAILURE;
-  //    }
-  //
-  //    readret = 0;
-  //    while((readret = recv(client_sock, buf, BUF_SIZE, 0)) >= 1) {
-  //        if (send(client_sock, buf, readret, 0) != readret) {
-  //            close_socket(client_sock);
-  //            close_socket(server_sock);
-  //            fprintf(stderr, "Error sending to client.\n");
-  //            return EXIT_FAILURE;
-  //        }
-  //        memset(buf, 0, BUF_SIZE);
-  //    }
-  //
-  //    if (readret == -1) {
-  //        close_socket(client_sock);
-  //        close_socket(server_sock);
-  //        fprintf(stderr, "Error reading from client socket.\n");
-  //        return EXIT_FAILURE;
-  //    }
-  //
-  //    if (close_socket(client_sock)) {
-  //        close_socket(server_sock);
-  //        fprintf(stderr, "Error closing client socket.\n");
-  //        return EXIT_FAILURE;
-  //    }
-  // }
-  //
-  // close_socket(server_sock);
-  // return EXIT_SUCCESS;
 }
 
 int close_socket(int sock) {
