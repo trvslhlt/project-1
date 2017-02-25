@@ -1,6 +1,8 @@
 # builds
 echo_server
 echo_client
+# log file
+log.txt
 
 # Object files
 *.o

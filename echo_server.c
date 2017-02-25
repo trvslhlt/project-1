@@ -18,12 +18,15 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define ECHO_PORT 9999
 #define BUF_SIZE 4096
 
 int close_socket(int);
 void cleanup_socks(int, int);
+void interrupt_handler(int);
+FILE *log_file;
 
 int main(int argc, char* argv[]) {
   int server_sock, min_sock, max_sock, new_sock;
@@ -34,12 +37,19 @@ int main(int argc, char* argv[]) {
   int i;
   ssize_t nbytes;
 
-  fprintf(stdout, "----- Echo Server -----\n");
+  signal(SIGINT, interrupt_handler);
+  log_file = fopen( "log.txt", "w" ); // Open file for writing
+  if (log_file == NULL) {
+    fprintf(stdout, "log file not available");
+    return EXIT_FAILURE;
+  }
+
+  fprintf(log_file, "----- Echo Server -----\n");
   if ((server_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
     fprintf(stderr, "Failed creating socket.\n");
     return EXIT_FAILURE;
   }
-  fprintf(stdout, "server socket created: %d.\n", server_sock);
+  fprintf(log_file, "server socket created: %d.\n", server_sock);
   FD_ZERO(&master_set);
   FD_ZERO(&read_set);
   FD_SET(server_sock, &master_set);
@@ -60,36 +70,36 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Failed binding socket.\n");
     return EXIT_FAILURE;
   }
-  fprintf(stdout, "server socket bound.\n");
+  fprintf(log_file, "server socket bound.\n");
 
   if (listen(server_sock, 5)) {
     cleanup_socks(min_sock, max_sock);
     fprintf(stderr, "Error listening on socket.\n");
     return EXIT_FAILURE;
   }
-  fprintf(stdout, "server socket listening.\n");
+  fprintf(log_file, "server socket listening.\n");
 
   for(;;) {
     read_set = master_set;
-    fprintf(stdout, "waiting for event on select.\n");
+    fprintf(log_file, "waiting for event on select.\n");
     if (select(max_sock + 1, &read_set, NULL, NULL, NULL) == -1) { //block until we have an event
       fprintf(stderr, "Error exiting select.\n");
       return EXIT_FAILURE;
     }
 
     for (i = min_sock; i <= max_sock; i++) {
-      fprintf(stdout, "select event. checking socket: %d.\n", i);
+      fprintf(log_file, "select event. checking socket: %d.\n", i);
 
       if (FD_ISSET(i, &read_set)) { // check for events on the socket fd
         if (i == server_sock) { // we have a connection request
-          fprintf(stdout, "connection request.\n");
+          fprintf(log_file, "connection request.\n");
           cli_size = sizeof(cli_addr);
           if ((new_sock = accept(server_sock, (struct sockaddr *) &cli_addr, &cli_size)) == -1) {
             cleanup_socks(min_sock, max_sock);
             fprintf(stderr, "Error accepting connection.\n");
             return EXIT_FAILURE;
           } else {
-            fprintf(stdout, "connection accepted on socket: %d", new_sock);
+            fprintf(log_file, "connection accepted on socket: %d", new_sock);
             FD_SET(new_sock, &master_set);
             if(new_sock > max_sock) {
               max_sock = new_sock;
@@ -99,7 +109,7 @@ int main(int argc, char* argv[]) {
         } else { // we have an event on an existing connection
           if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
             if (nbytes == 0) { // connection closed
-              fprintf(stdout, "connection closed on socket: %d\n", i);
+              fprintf(log_file, "connection closed on socket: %d\n", i);
             } else {
               fprintf(stderr, "Error reading data from socket: %d, error: %zd.\n", i, nbytes);
               return EXIT_FAILURE;
@@ -112,7 +122,7 @@ int main(int argc, char* argv[]) {
               fprintf(stderr, "Error sending to client.\n");
               return EXIT_FAILURE;
             }
-            fprintf(stdout, "sent data to client: %d\n", i);
+            fprintf(log_file, "sent data to client: %d\n", i);
             memset(buf, 0, BUF_SIZE);
           }
         }
@@ -121,6 +131,7 @@ int main(int argc, char* argv[]) {
   } // infinite for loop
 
   cleanup_socks(min_sock, max_sock);
+  fclose(log_file);
   return EXIT_SUCCESS;
 }
 
@@ -137,4 +148,8 @@ void cleanup_socks(int min_sock, int max_sock) {
   for (i = min_sock; i <= max_sock; i++) {
     close_socket(i);
   }
+}
+
+void interrupt_handler(int signal) {
+  fclose(log_file);
 }
