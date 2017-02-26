@@ -182,17 +182,16 @@ void parse_request(char * request_buf, int size, int socketFd, char * response) 
   char * uri_requested = request->http_uri;
   char * header = malloc(4096);
 
-  printf("%s", statusline);
-
   if (strcmp(method,"GET") == 0) {
     printf("GET request made\n");
-    header = get_response_headers(request)
   }
   if (strcmp(method,"POST") == 0) {
     printf("POST request made\n");
   }
   if (strcmp(method,"HEAD") == 0) {
     printf("HEAD request made\n");
+    header = get_response_headers(request);
+    printf("%s\n", header);
   }
 
   printf("Header count %d\n",request->header_count);
@@ -260,7 +259,7 @@ char * assemble_status_line(int status_code) {
 }
 
 char * make_header(char * name, char * value) {
-  char * header;
+  char * header = malloc(2096);
 
   strcpy(header, name);
   strcat(header, ": ");
