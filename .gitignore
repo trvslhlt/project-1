@@ -1,6 +1,8 @@
 # builds
 echo_server
 echo_client
+example
+
 # log file
 log.txt
 
