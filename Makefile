@@ -24,5 +24,5 @@ echo_client:
 	@gcc echo_client.c -o echo_client -Wall -Werror
 
 clean:
-	@rm echo_server echo_client
-	rm -f *~ *.o example lex.yy.c y.tab.c y.tab.h
+	@rm -f echo_server echo_client
+	@rm -f *~ *.o example lex.yy.c y.tab.c y.tab.h
