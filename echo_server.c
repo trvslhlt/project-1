@@ -20,12 +20,27 @@
 #include <unistd.h>
 #include <signal.h>
 
+// imports for parse
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "parse.h"
+
 #define ECHO_PORT 9999
 #define BUF_SIZE 4096
 
 int close_socket(int);
 void cleanup_socks(int, int);
 void interrupt_handler(int);
+
+void parse_request(char *, int, int, char *);
+
+// helper functions for assembling strings
+char * get_reason(int);
+char * assemble_status_line(int);
+char * get_response_headers(Request *);
+char * make_header(char *, char *);
+
 FILE *log_file;
 
 int main(int argc, char* argv[]) {
@@ -117,6 +132,12 @@ int main(int argc, char* argv[]) {
             close_socket(i);
             FD_CLR(i, &master_set);
           } else { // we have data to read
+            printf("%s\n", buf);
+            // send to parsing function
+            char * response = malloc(4096);
+            parse_request(buf, nbytes, i, response);
+            send(i, response, strlen(response), 0); // send the response
+
             if (send(i, buf, nbytes, 0) != nbytes) {
               cleanup_socks(min_sock, max_sock);
               fprintf(stderr, "Error sending to client.\n");
@@ -152,4 +173,99 @@ void cleanup_socks(int min_sock, int max_sock) {
 
 void interrupt_handler(int signal) {
   fclose(log_file);
+}
+
+void parse_request(char * request_buf, int size, int socketFd, char * response) {
+  Request *request = parse(request_buf, size, socketFd);
+
+  char * method = request->http_method;
+  char * uri_requested = request->http_uri;
+  char * header = malloc(4096);
+
+  printf("%s", statusline);
+
+  if (strcmp(method,"GET") == 0) {
+    printf("GET request made\n");
+    header = get_response_headers(request)
+  }
+  if (strcmp(method,"POST") == 0) {
+    printf("POST request made\n");
+  }
+  if (strcmp(method,"HEAD") == 0) {
+    printf("HEAD request made\n");
+  }
+
+  printf("Header count %d\n",request->header_count);
+  printf("Header one %s\n",request->headers[0].header_name);
+  printf("Header one %s\n",request->headers[0].header_value);
+  //free(request);
+}
+
+char * get_reason(int status_code) {
+  char * reason;
+  switch (status_code) {
+    case 200:
+      reason = "OK";
+      break;
+    case 404:
+      reason = "Not Found";
+      break;
+    case 411:
+      reason = "Length Required";
+      break;
+    case 500:
+      reason = "Internal Server Error";
+      break;
+    case 501:
+      reason = "Not Implemented";
+      break;
+    case 503:
+      reason = "Service Unavailable";
+      break;
+    case 505:
+      reason = "HTTP Version not supported";
+      break;
+  }
+
+  return reason;
+}
+
+char * get_response_headers(Request * request) {
+  char * header = malloc(4096);
+  printf("Http Version %s\n",request->http_version);
+
+  char * statusline = assemble_status_line(501);
+  strcpy(header, statusline);
+
+  return header;
+}
+
+char * assemble_status_line(int status_code) {
+  char * status_line = malloc(4000);
+  char * http_version = "HTTP/1.1";
+
+  char * reason = get_reason(status_code);
+
+  char status_str[3];
+  sprintf(status_str, "%d", status_code);
+
+  strcpy(status_line, http_version);
+  strcat(status_line, " ");
+  strcat(status_line, status_str);
+  strcat(status_line, " ");
+  strcat(status_line, reason);
+  strcat(status_line, "\r\n");
+
+  return status_line;
+}
+
+char * make_header(char * name, char * value) {
+  char * header;
+
+  strcpy(header, name);
+  strcat(header, ": ");
+  strcat(header, value);
+  strcat(header, "\r\n");
+
+  return header;
 }

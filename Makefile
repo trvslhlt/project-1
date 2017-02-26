@@ -1,12 +1,12 @@
 CC=gcc
 CFLAGS=-I.
 DEPS = parse.h y.tab.h
-OBJ = y.tab.o lex.yy.o parse.o example.o
+OBJ = y.tab.o lex.yy.o parse.o echo_server.o
 FLAGS = -g -Wall
 
 default: echo_server echo_client all
 
-all: example
+all: echo_server
 
 lex.yy.c: lexer.l
 	flex $^
@@ -17,11 +17,8 @@ y.tab.c: parser.y
 %.o: %.c $(DEPS)
 	$(CC) $(FLAGS) -c -o $@ $< $(CFLAGS)
 
-example: $(OBJ)
+echo_server: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
-
-echo_server:
-	@gcc echo_server.c -o echo_server -Wall -Werror
 
 echo_client:
 	@gcc echo_client.c -o echo_client -Wall -Werror
