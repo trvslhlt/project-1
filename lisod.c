@@ -122,17 +122,24 @@ int main(int argc, char* argv[]) {
             printf("%s\n", buf);
             
             // handle incoming data
-            char * response = malloc(10000); // TODO: ******* ADDRESS THIS
-            http_parse_request(buf, nbytes, i, response);
-            memset(buf, 0, BUF_SIZE);
-            
-            // send response to client
-            if (send(i, response, strlen(response), 0) != strlen(response)) {
+            char* response = malloc(10000); // TODO: ******* ADDRESS THIS
+            if (http_handle_data(buf, nbytes, i, response) != 0) {
               cleanup_socks(min_sock, max_sock);
-              fprintf(stderr, "Error sending to client.\n");
+              fprinf(log_file, "encountered error while handling incoming data");
               return EXIT_FAILURE;
             }
-            fprintf(log_file, "sent data to client: %d\n", i);
+            memset(buf, 0, BUF_SIZE);
+            
+            // respond if necesssary
+            if (strlen(response) != 0) { // if we have a response, send it
+              if (send(i, response, strlen(response), 0) != strlen(response)) {
+                cleanup_socks(min_sock, max_sock);
+                fprintf(stderr, "Error sending to client.\n");
+                return EXIT_FAILURE;
+              }
+              fprintf(log_file, "sent data to client: %d\n", i);
+            }
+            
             free(response);
           }
         }

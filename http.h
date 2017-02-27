@@ -1,3 +1,3 @@
 #include <stdio.h>
 
-void http_parse_request(char *, int, int, char *);
+int http_handle_data(char *, int, int, char *);

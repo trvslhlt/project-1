@@ -19,18 +19,25 @@ char* get_header_value(Request *, char *);
 char* get_mime_type(char *);
 
 // this function parses the request in request_buf and creates a response, which it writes to response
-void http_parse_request(char *request_buf, int size, int socketFd, char *response) {
-  Request *request = parse(request_buf, size, socketFd);
+int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
+  
+  // TODO: Check to see if the data in the request_buf completes a request before
+  // attempting to create a Request struct from the data
+  
+  Request *request = parse(request_buf, size, socket_fd);
+  if (!request) {
+    return -1;
+  }
   char *method = request->http_method;
-  char *header = malloc(4096); // **** ADDRESS THIS
-  char *entity_buffer = malloc(10000); // AND THIS
+  char *header = malloc(4096); // TODO: **** ADDRESS THIS
+  char *entity_buffer = malloc(10000); //TODO: AND THIS
 
   if (strcmp(method,"GET") == 0) {
     printf("GET request made\n");
     header = get_response(request, entity_buffer, true);
-    strcpy(response, header); // start with the headers
-    strcat(response, entity_buffer); // add the actual content of the response
-    strcat(response, "\r\n"); // to end response
+    strcpy(response_buf, header); // start with the headers
+    strcat(response_buf, entity_buffer); // add the actual content of the response
+    strcat(response_buf, "\r\n"); // to end response
   }
   
   if (strcmp(method,"POST") == 0) {
@@ -39,10 +46,11 @@ void http_parse_request(char *request_buf, int size, int socketFd, char *respons
   
   if (strcmp(method,"HEAD") == 0) {
     printf("HEAD request made\n");
-    header = get_response(request, entity_buffer, false);
-    strcpy(response, header);
+    header = get_response(request_buf, entity_buffer, false);
+    strcpy(response_buf, header);
   }
   //TODO: handle other methods (by generating 501)
+  return 0;
 }
 
 // helper function to get reason strings
