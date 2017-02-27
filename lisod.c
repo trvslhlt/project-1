@@ -134,7 +134,8 @@ int main(int argc, char* argv[]) {
             printf("%s\n", incoming_buf);
 
             // handle incoming data
-            outgoing_byte_count = http_handle_data(incoming_buf, incoming_byte_count, i, outgoing_buf);
+            outgoing_byte_count = http_handle_data(incoming_buf, incoming_byte_count, i, outgoing_buf); // TODO: outgoing_byte_count is not accurate
+            // it will be 0 in case of success, which is why I used strlen() in later loop
             if (outgoing_byte_count < 0) {
               cleanup_socks(min_sock, max_sock);
               fprintf(log_file, "encountered error while handling incoming data");
@@ -143,8 +144,8 @@ int main(int argc, char* argv[]) {
             memset(incoming_buf, 0, INCOMING_BUF_SIZE); // why do we do this outside of privacy?
 
             // respond if necesssary
-            if (outgoing_byte_count < 0) { // if we have a response, send it
-              if (send(i, outgoing_buf, outgoing_byte_count, 0) != outgoing_byte_count) {
+            if (outgoing_byte_count == 0) { // if we have a response, send it
+              if (send(i, outgoing_buf, strlen(outgoing_buf), 0) != strlen(outgoing_buf)) {
                 cleanup_socks(min_sock, max_sock);
                 fprintf(stderr, "Error sending to client.\n");
                 return EXIT_FAILURE;
