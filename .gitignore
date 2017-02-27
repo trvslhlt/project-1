@@ -2,6 +2,8 @@
 lisod
 echo_client
 example
+y.tab.c
+y.tab.h
 
 # log file
 log.txt
@@ -39,3 +41,6 @@ log.txt
 # Debug files
 *.dSYM/
 *.su
+
+# Python
+*.pyc
