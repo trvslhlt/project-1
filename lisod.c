@@ -28,6 +28,8 @@ int close_socket(int);
 void cleanup_socks(int, int);
 void interrupt_handler(int);
 
+typedef enum { false, true } bool;
+
 FILE *log_file;
 
 int main(int argc, char* argv[]) {
@@ -38,6 +40,14 @@ int main(int argc, char* argv[]) {
   char buf[BUF_SIZE];
   int i;
   ssize_t nbytes;
+
+  int srve_test = set_serve_folder(argv[2]);
+  int cont = set_continue(false);
+
+  if (argc != 3) { // need port and folder to serve from
+    fprintf(stderr, "Incorrect number of arguments %d\n", argc);
+    return EXIT_FAILURE;
+  }
 
   signal(SIGINT, interrupt_handler);
   log_file = fopen( "log.txt", "w" ); // Open file for writing
@@ -65,7 +75,7 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(ECHO_PORT);
+  addr.sin_port = htons(atoi(argv[1])); // using first command line arg
   addr.sin_addr.s_addr = INADDR_ANY;
   if (bind(server_sock, (struct sockaddr *) &addr, sizeof(addr))) {
     cleanup_socks(min_sock, max_sock);
@@ -120,7 +130,7 @@ int main(int argc, char* argv[]) {
             FD_CLR(i, &master_set);
           } else { // we have data to read
             printf("%s\n", buf);
-            
+
             // handle incoming data
             char* response = malloc(10000); // TODO: ******* ADDRESS THIS
             if (http_handle_data(buf, nbytes, i, response) != 0) {
@@ -129,7 +139,7 @@ int main(int argc, char* argv[]) {
               return EXIT_FAILURE;
             }
             memset(buf, 0, BUF_SIZE);
-            
+
             // respond if necesssary
             if (strlen(response) != 0) { // if we have a response, send it
               if (send(i, response, strlen(response), 0) != strlen(response)) {
@@ -139,7 +149,7 @@ int main(int argc, char* argv[]) {
               }
               fprintf(log_file, "sent data to client: %d\n", i);
             }
-            
+
             free(response);
           }
         }
