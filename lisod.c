@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
             char* response = malloc(10000); // TODO: ******* ADDRESS THIS
             if (http_handle_data(buf, nbytes, i, response) != 0) {
               cleanup_socks(min_sock, max_sock);
-              fprinf(log_file, "encountered error while handling incoming data");
+              fprintf(log_file, "encountered error while handling incoming data");
               return EXIT_FAILURE;
             }
             memset(buf, 0, BUF_SIZE);
