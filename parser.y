@@ -208,10 +208,13 @@ request_header: token ows t_colon ows text ows t_crlf {
  * and the annotated excerpted text on the course website. All the best!
  *
  */
-request: request_line request_header{
-	YPRINTF("parsing_request: Matched Success.\n");
-	return SUCCESS;
-};
+request: request_line request_header { YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header request_header request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header request_header request_header request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header request_header request_header request_header request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
 
 %%
 
