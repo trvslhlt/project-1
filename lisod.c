@@ -139,9 +139,11 @@ int main(int argc, char* argv[]) {
           } else { // we have data to read
             printf("%s\n", buf);
             // send to parsing function
-            char * response = malloc(10000); // ******* ADDRESS THIS
+            // TODO: ******* ADDRESS THIS
+            char * response = malloc(10000);
             parse_request(buf, nbytes, i, response);
-
+            memset(buf, 0, BUF_SIZE);
+            
             if (send(i, response, strlen(response), 0) != strlen(response)) {
               cleanup_socks(min_sock, max_sock);
               fprintf(stderr, "Error sending to client.\n");
@@ -149,16 +151,9 @@ int main(int argc, char* argv[]) {
             }
 
             fprintf(log_file, "sent data to client: %d\n", i);
-            memset(buf, 0, BUF_SIZE);
+            
 
             free(response);
-
-            // echo form
-            // if (send(i, buf, nbytes, 0) != nbytes) {
-            //   cleanup_socks(min_sock, max_sock);
-            //   fprintf(stderr, "Error sending to client.\n");
-            //   return EXIT_FAILURE;
-            // }
           }
         }
       } // check if socket file descriptor is in the set from select (has an event)
