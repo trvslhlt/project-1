@@ -22,7 +22,8 @@
 #include "http.h"
 
 #define ECHO_PORT 9999
-#define BUF_SIZE 4096
+#define INCOMING_BUF_SIZE 4096
+#define OUTGOING_BUF_SIZE 10000
 
 int close_socket(int);
 void cleanup_socks(int, int);
@@ -35,9 +36,10 @@ int main(int argc, char* argv[]) {
   fd_set master_set, read_set;
   socklen_t cli_size;
   struct sockaddr_in addr, cli_addr;
-  char buf[BUF_SIZE];
+  char incoming_buf[INCOMING_BUF_SIZE];
+  char outgoing_buf[OUTGOING_BUF_SIZE];
   int i;
-  ssize_t nbytes;
+  ssize_t incoming_byte_count, outgoing_byte_count;
 
   signal(SIGINT, interrupt_handler);
   log_file = fopen( "log.txt", "w" ); // Open file for writing
@@ -109,38 +111,37 @@ int main(int argc, char* argv[]) {
           }
 
         } else { // we have an event on an existing connection
-          if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
-            if (nbytes == 0) { // connection closed
+          if ((incoming_byte_count = recv(i, incoming_buf, sizeof(incoming_buf), 0)) <= 0) {
+            if (incoming_byte_count == 0) { // connection closed
               fprintf(log_file, "connection closed on socket: %d\n", i);
             } else {
-              fprintf(stderr, "Error reading data from socket: %d, error: %zd.\n", i, nbytes);
+              fprintf(stderr, "Error reading data from socket: %d, error: %zd.\n", i, incoming_byte_count);
               return EXIT_FAILURE;
             }
             close_socket(i);
             FD_CLR(i, &master_set);
           } else { // we have data to read
-            printf("%s\n", buf);
+            printf("%s\n", incoming_buf);
             
             // handle incoming data
-            char* response = malloc(10000); // TODO: ******* ADDRESS THIS
-            if (http_handle_data(buf, nbytes, i, response) != 0) {
+            outgoing_byte_count = http_handle_data(incoming_buf, incoming_byte_count, i, outgoing_buf);
+            if (outgoing_byte_count < 0) {
               cleanup_socks(min_sock, max_sock);
               fprintf(log_file, "encountered error while handling incoming data");
               return EXIT_FAILURE;
             }
-            memset(buf, 0, BUF_SIZE);
+            memset(incoming_buf, 0, INCOMING_BUF_SIZE); // why do we do this outside of privacy?
             
             // respond if necesssary
-            if (strlen(response) != 0) { // if we have a response, send it
-              if (send(i, response, strlen(response), 0) != strlen(response)) {
+            if (outgoing_byte_count < 0) { // if we have a response, send it
+              if (send(i, outgoing_buf, outgoing_byte_count, 0) != outgoing_byte_count) {
                 cleanup_socks(min_sock, max_sock);
                 fprintf(stderr, "Error sending to client.\n");
                 return EXIT_FAILURE;
               }
               fprintf(log_file, "sent data to client: %d\n", i);
+              memset(outgoing_buf, 0, OUTGOING_BUF_SIZE);
             }
-            
-            free(response);
           }
         }
       } // check if socket file descriptor is in the set from select (has an event)
