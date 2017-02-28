@@ -21,14 +21,14 @@ char* get_reason(int);
 char* assemble_status_line(int);
 char* get_response(Request *, char *, int);
 char* make_header(char *, char *);
-char* get_header_value(Request *, char *);
 char* get_mime_type(char *);
 int set_serve_folder(char *);
 int set_continue(bool);
+int get_method(char *http_method_str);
 
-char * permanent_serve_folder;
+char *permanent_serve_folder;
 bool following_continue; // bool to keep track of POSTs (send continue then OK)
-Request * last_post_req;
+Request *last_post_req;
 
 
 int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
@@ -59,7 +59,6 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   }
 
   if (parse(existing_data, size, &request) != 0) {
-    free(&request);
     free(existing_data);
     response = get_default_response(400);
     marshalled_response = marshal_response(&response);
@@ -71,10 +70,8 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   free(existing_data);
   
   if (handle_request(&request, &response) != 0) {
-    free(&request);
     get_default_response(500);
   }
-  free(&request);
   
   // TODO: delete persistent store of existing_data
   free(existing_data);
@@ -86,18 +83,27 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
 
 int handle_request(Request *request, Response *response) {
   // TODO: handle request
-  return -1;
-  //   if(following_continue == true) {
-  //     strcpy(header, get_response(last_post_req , entity_buffer, POST));
-  //     strcpy(response_buf, header);
-  // 
-  //     following_continue = false;
-  // 
-  //     free(header);
-  //     free(entity_buffer);
-  //     return 0; // exit before request object is created
-  //   }  
-  // 
+  int method = get_method(request->header.method);
+  if (method < 0) {
+    *response = get_default_response(501);
+    return 0;
+  }
+  
+  switch (method) {
+    case GET:
+      *response = get_default_response(500);
+      break;
+    case HEAD:
+      *response = get_default_response(500);
+      break;
+    case POST:
+      *response = get_default_response(500);
+      break;
+    default:
+      *response = get_default_response(501);
+  }
+  return 0;
+
   // char *method = request.http_method;
   // 
   // if (strcmp(method,"GET") == 0) {
@@ -133,6 +139,17 @@ int handle_request(Request *request, Response *response) {
   // // free(request);
 }
 
+int get_method(char *http_method_str) {
+  if (strcmp(http_method_str, "GET") == 0) {
+    return GET;
+  } else if (strcmp(http_method_str, "HEAD") == 0) {
+    return HEAD;
+  } else if (strcmp(http_method_str, "POST") == 0) {
+    return POST;
+  } else {
+    return -1;
+  }
+}
 
 int set_serve_folder(char * serve_folder) {
   permanent_serve_folder = malloc(200);
@@ -297,19 +314,6 @@ char* get_mime_type(char *extension) {
   return mime_type;
 }
 
-char* get_header_value(Request * request, char *name) {
-    int index = 0;
-
-    for(index = 0; index < request->header.field_count; index++) {
-      if(strcmp(request->header.fields[index].name, name) == 0) {
-        return request->header.fields[index].value;
-      }
-    }
-
-    char *nullstr = "NULL";
-    return nullstr;
-}
-
 // helper to create a new header field
 char* make_header(char *name, char *value) {
   char *header = malloc(2096);
@@ -321,7 +325,6 @@ char* make_header(char *name, char *value) {
 
   return header;
 }
-
 
 Response get_default_response(int status_code) {
   Response_header header;
