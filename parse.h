@@ -19,9 +19,4 @@ typedef struct {
 	int header_count;
 } Request;
 
-// TODO: might want to change the signature
-// so the function can return an error code, and assign a new Request
-// struct internally. right now if a null pointer were returned
-// it could mean the data in buffer is a partial request, OR
-// a complete malformed one
-Request* parse(char *buffer, int size,int socketFd);
+int parse(char *buffer, int size, int socketFd, Request *request);

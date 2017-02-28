@@ -1,19 +1,19 @@
 #include "parse.h"
 
-/**
-* Given a char buffer returns the parsed request headers
-*/
-Request * parse(char *buffer, int size, int socketFd) {
-  //Differant states in the state machine
-  enum {
+
+#define BUF_SIZE 8192
+
+int parse(char *buffer, int size, Request *request) {
+  
+  enum { //Differant states in the state machine
     STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF
   };
 
   int i = 0, state;
   size_t offset = 0;
   char ch;
-  char buf[8192];
-  memset(buf, 0, 8192);
+  char buf[BUF_SIZE];
+  memset(buf, 0, BUF_SIZE);
 
   state = STATE_START;
   while (state != STATE_CRLFCRLF) {
@@ -50,18 +50,18 @@ Request * parse(char *buffer, int size, int socketFd) {
 
   //Valid End State
   if (state == STATE_CRLFCRLF) {
-    Request *request = (Request *) malloc(sizeof(Request));
     request->header_count = 0;
     //TODO You will need to handle resizing this in parser.y
     request->headers = (Request_header *) malloc(sizeof(Request_header) * 1);
     set_parsing_options(buf, i, request);
 
     if (yyparse() == SUCCESS) {
-      return request;
+      return 0;
     } else { // **********
-      return request;
+      return -1;
     }
   }
   //TODO Handle Malformed Requests
   printf("Parsing Failed\n");
+  return -1;
 }
