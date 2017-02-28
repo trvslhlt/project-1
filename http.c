@@ -32,17 +32,20 @@ Request * last_post_req;
 
 
 int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
+  Request request;
+  Response response;
+  char *marshalled_response;
   // TODO: get existing data for socket_fd
   char *existing_data = malloc(BIG_DUMB_NUMBER);
-  
+    
   // update existing data
   strcpy(existing_data, request_buf);
   
   // check if existing data is invalid
   if (invalid_request_data(existing_data)) {
     free(existing_data);
-    Response response = get_default_response(400);
-    char *marshalled_response = marshal_response(&response);
+    response = get_default_response(400);
+    marshalled_response = marshal_response(&response);
     strcpy(response_buf, marshalled_response);
     free(marshalled_response);
     return strlen(response_buf);
@@ -55,12 +58,11 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
     return 0;
   }
 
-  Request request;
   if (parse(existing_data, size, &request) != 0) {
     free(&request);
     free(existing_data);
-    Response response = get_default_response(400);
-    char *marshalled_response = marshal_response(&response);
+    response = get_default_response(400);
+    marshalled_response = marshal_response(&response);
     strcpy(response_buf, marshalled_response);
     free(marshalled_response);
     return strlen(response_buf);
@@ -68,7 +70,6 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   // TODO: don't throw away data, wait for next event on socket
   free(existing_data);
   
-  Response response;
   if (handle_request(&request, &response) != 0) {
     free(&request);
     get_default_response(500);
@@ -77,11 +78,10 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   
   // TODO: delete persistent store of existing_data
   free(existing_data);
-  char *marshalled_response = marshal_response(&response);
+  marshalled_response = marshal_response(&response);
   strcpy(response_buf, marshalled_response);
   free(marshalled_response);
   return strlen(response_buf);
-  return -1;
 }
 
 int handle_request(Request *request, Response *response) {
