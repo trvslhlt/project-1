@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-I.
 DEPS = parse.h y.tab.h http.h
-OBJ = y.tab.o lex.yy.o parse.o http.o lisod.o
+OBJ = y.tab.o lex.yy.o parse.o marshal.o http.o lisod.o
 FLAGS = -g -Wall
 
 default: lisod echo_client

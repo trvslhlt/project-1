@@ -19,4 +19,6 @@ typedef struct {
 	int header_count;
 } Request;
 
-int parse(char *buffer, int size, int socketFd, Request *request);
+int parse(char *buffer, int size, Request *request);
+int invalid_request_data(char *request_data); // not asking if complete, only if already invalid or malformed
+int complete_request(char *request_data);

@@ -7,12 +7,16 @@
 #include <fcntl.h>
 #include "parse.h"
 #include "http.h"
+#include "marshal.h"
+
+#define BIG_DUMB_NUMBER 10000
 
 typedef enum { false, true } bool;
-
 enum { GET = 0, HEAD, POST };
 
 // helper functions for assembling strings
+Response get_default_response(int status_code);
+int handle_request(Request *request, Response *response);
 char* get_reason(int);
 char* assemble_status_line(int);
 char* get_response(Request *, char *, int);
@@ -24,8 +28,111 @@ int set_continue(bool);
 
 char * permanent_serve_folder;
 bool following_continue; // bool to keep track of POSTs (send continue then OK)
-
 Request * last_post_req;
+
+
+int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
+  // TODO: get existing data for socket_fd
+  char *existing_data = malloc(BIG_DUMB_NUMBER);
+  
+  // update existing data
+  strcpy(existing_data, request_buf);
+  
+  // check if existing data is invalid
+  if (invalid_request_data(existing_data)) {
+    free(existing_data);
+    Response response = get_default_response(400);
+    char *marshalled_response = marshal_response(&response);
+    strcpy(response_buf, marshalled_response);
+    free(marshalled_response);
+    return strlen(response_buf);
+  }
+  
+  // check if existing data is a complete request
+  if (!complete_request(existing_data)) {
+    // TODO: don't throw away data, wait for next event on socket
+    free(existing_data);
+    return 0;
+  }
+
+  Request request;
+  if (parse(existing_data, size, &request) != 0) {
+    free(&request);
+    free(existing_data);
+    Response response = get_default_response(400);
+    char *marshalled_response = marshal_response(&response);
+    strcpy(response_buf, marshalled_response);
+    free(marshalled_response);
+    return strlen(response_buf);
+  }
+  // TODO: don't throw away data, wait for next event on socket
+  free(existing_data);
+  
+  Response response;
+  if (handle_request(&request, &response) != 0) {
+    free(&request);
+    get_default_response(500);
+  }
+  free(&request);
+  
+  // TODO: delete persistent store of existing_data
+  free(existing_data);
+  char *marshalled_response = marshal_response(&response);
+  strcpy(response_buf, marshalled_response);
+  free(marshalled_response);
+  return strlen(response_buf);
+  return -1;
+}
+
+int handle_request(Request *request, Response *response) {
+  // TODO: handle request
+  return -1;
+  //   if(following_continue == true) {
+  //     strcpy(header, get_response(last_post_req , entity_buffer, POST));
+  //     strcpy(response_buf, header);
+  // 
+  //     following_continue = false;
+  // 
+  //     free(header);
+  //     free(entity_buffer);
+  //     return 0; // exit before request object is created
+  //   }  
+  // 
+  // char *method = request.http_method;
+  // 
+  // if (strcmp(method,"GET") == 0) {
+  //   printf("GET request made\n");
+  //   strcpy(header, get_response(request, entity_buffer, GET));
+  //   strcpy(response_buf, header); // start with the headers
+  //   strcat(response_buf, entity_buffer); // add the actual content of the response
+  //   strcat(response_buf, "\r\n"); // to end response
+  // }
+  // else if (strcmp(method,"POST") == 0) {
+  //   printf("POST request made\n");
+  //   strcpy(header, get_response(request , entity_buffer, POST));
+  //   strcpy(response_buf, header);
+  //   following_continue = true;
+  // }
+  // else if (strcmp(method,"HEAD") == 0) {
+  //   printf("HEAD request made\n");
+  //   strcpy(header, get_response(request , entity_buffer, HEAD));
+  //   strcpy(response_buf, header);
+  // }
+  // else {
+  //   printf("Unimplemented method request made\n");
+  // 
+  //   strcat(header, assemble_status_line(501)); // return unimplemented line
+  //   // standard headers
+  //   strcat(header, make_header("Server", "Liso/1.0"));
+  //   strcat(header, "\r\n"); // end of header line
+  //   strcpy(response_buf, header);
+  // }
+  // 
+  // free(header);
+  // free(entity_buffer);
+  // // free(request);
+}
+
 
 int set_serve_folder(char * serve_folder) {
   permanent_serve_folder = malloc(200);
@@ -38,109 +145,6 @@ int set_continue(bool continue_status) {
   return 0;
 }
 
-// this function parses the request in request_buf and creates a response, which it writes to response
-int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
-  // TODO: Check to see if the data in the request_buf completes a request before
-  // attempting to create a Request struct from the data
-
-  char * header = malloc(8192); // TODO: **** ADDRESS THIS
-  char * entity_buffer = malloc(10000); //TODO: AND THIS
-
-  if(following_continue == true) {
-    strcpy(header, get_response(last_post_req , entity_buffer, POST));
-    strcpy(response_buf, header);
-
-    following_continue = false;
-
-    free(header);
-    free(entity_buffer);
-    return 0; // exit before request object is created
-  }
-
-  Request * request = parse(request_buf, size, socket_fd);
-
-  if (!request) {
-    return -1;
-  }
-
-  char * method = request->http_method;
-
-  if (strcmp(method,"GET") == 0) {
-    printf("GET request made\n");
-    strcpy(header, get_response(request, entity_buffer, GET));
-    strcpy(response_buf, header); // start with the headers
-    strcat(response_buf, entity_buffer); // add the actual content of the response
-    strcat(response_buf, "\r\n"); // to end response
-  }
-  else if (strcmp(method,"POST") == 0) {
-    printf("POST request made\n");
-    strcpy(header, get_response(request , entity_buffer, POST));
-    strcpy(response_buf, header);
-    following_continue = true;
-  }
-  else if (strcmp(method,"HEAD") == 0) {
-    printf("HEAD request made\n");
-    strcpy(header, get_response(request , entity_buffer, HEAD));
-    strcpy(response_buf, header);
-  }
-  else {
-    printf("Unimplemented method request made\n");
-
-    strcat(header, assemble_status_line(501)); // return unimplemented line
-    // standard headers
-    strcat(header, make_header("Server", "Liso/1.0"));
-    strcat(header, "\r\n"); // end of header line
-    strcpy(response_buf, header);
-  }
-
-  free(header);
-  free(entity_buffer);
-  // free(request);
-
-  return 0;
-}
-
-// helper function to get reason strings
-char* get_reason(int status_code) {
-  char *reason;
-  switch (status_code) {
-    case 100:
-      reason = "Continue";
-      break;
-    case 200:
-      reason = "OK";
-      break;
-    case 404:
-      reason = "Not Found";
-      break;
-    case 411:
-      reason = "Length Required";
-      break;
-    case 500:
-      reason = "Internal Server Error";
-      break;
-    case 501:
-      reason = "Not Implemented";
-      break;
-    case 503:
-      reason = "Service Unavailable";
-      break;
-    case 505:
-      reason = "HTTP Version not supported";
-      break;
-    default:
-      reason = "Internal Server Error";
-  }
-
-  return reason;
-}
-
-char * get_post_OK_response() {
-  char *header = malloc(8192);
-  char *statusline = malloc(500);
-
-
-}
 
 // this function returns the headers, and if the request is a GET,
 // it will also write the file content to entity_buffer (for head, will skip this step)
@@ -316,4 +320,18 @@ char* make_header(char *name, char *value) {
   strcat(header, "\r\n");
 
   return header;
+}
+
+
+Response get_default_response(int status_code) {
+  Response_header header;
+  strcpy(header.http_version, "HTTP/1.1");
+  header.status_code = status_code;
+  Response_header_field field;
+  strcpy(field.name, "fieldName");
+  strcpy(field.value, "fieldValue");
+  Response_header_field fields[1] = {field}; 
+  header.fields = fields;
+  header.field_count = 1;
+  return (Response){header, "This is the test body of a bad request response.\n"};
 }

@@ -65,3 +65,13 @@ int parse(char *buffer, int size, Request *request) {
   printf("Parsing Failed\n");
   return -1;
 }
+
+int invalid_request_data(char *request_data) {
+  //TODO: implement
+  return 0;
+}
+
+int complete_request(char *request_data) {
+  // TODO: implement
+  return 1;
+}
