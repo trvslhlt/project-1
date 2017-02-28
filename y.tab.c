@@ -1380,9 +1380,9 @@ yyreduce:
 #line 190 "parser.y" /* yacc.c:1646  */
     {
 	YPRINTF("request_Line:\n%s\n%s\n%s\n",(yyvsp[-5].str), (yyvsp[-3].str),(yyvsp[-1].str));
-  strcpy(parsing_request->http_method, (yyvsp[-5].str));
-	strcpy(parsing_request->http_uri, (yyvsp[-3].str));
-	strcpy(parsing_request->http_version, (yyvsp[-1].str));
+  strcpy(parsing_request->header.method, (yyvsp[-5].str));
+	strcpy(parsing_request->header.uri, (yyvsp[-3].str));
+	strcpy(parsing_request->header.http_version, (yyvsp[-1].str));
 }
 #line 1388 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -1391,9 +1391,9 @@ yyreduce:
 #line 197 "parser.y" /* yacc.c:1646  */
     {
 	YPRINTF("request_Header:\n%s\n%s\n",(yyvsp[-6].str),(yyvsp[-2].str));
-  strcpy(parsing_request->headers[parsing_request->header_count].header_name, (yyvsp[-6].str));
-	strcpy(parsing_request->headers[parsing_request->header_count].header_value, (yyvsp[-2].str));
-	parsing_request->header_count++;
+  strcpy(parsing_request->header.fields[parsing_request->header.field_count].name, (yyvsp[-6].str));
+	strcpy(parsing_request->header.fields[parsing_request->header.field_count].value, (yyvsp[-2].str));
+	parsing_request->header.field_count++;
 }
 #line 1399 "y.tab.c" /* yacc.c:1646  */
     break;

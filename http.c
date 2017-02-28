@@ -162,10 +162,10 @@ char* get_response(Request *request, char *entity_buffer, int method) {
   char * filepath = malloc(300);
   strcpy(filepath, permanent_serve_folder);
   strcat(filepath, "/");
-  strcat(filepath, request->http_uri + 1);
+  strcat(filepath, request->header.uri + 1);
 
   // status line creation
-  if(strcmp(request->http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
+  if(strcmp(request->header.http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
     strcpy(statusline, assemble_status_line(505));
     strcpy(header, statusline);
     strcat(header, make_header("Connection", "close"));
@@ -187,7 +187,7 @@ char* get_response(Request *request, char *entity_buffer, int method) {
     char *mime = malloc(30);
 
     // get the file extension
-    char *ext = strrchr(request->http_uri + 1, '.');
+    char *ext = strrchr(request->header.uri + 1, '.');
 
     // determine MIME type
     if (!ext) { // null extension
@@ -300,9 +300,9 @@ char* get_mime_type(char *extension) {
 char* get_header_value(Request * request, char *name) {
     int index = 0;
 
-    for(index = 0; index < request->header_count; index++) {
-      if(strcmp(request->headers[index].header_name, name) == 0) {
-        return request->headers[index].header_value;
+    for(index = 0; index < request->header.field_count; index++) {
+      if(strcmp(request->header.fields[index].name, name) == 0) {
+        return request->header.fields[index].value;
       }
     }
 
