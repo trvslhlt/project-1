@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
   int cont = set_continue(false);
 
   if (argc != 3) { // need port and folder to serve from
-    fprintf(stderr, "Incorrect number of arguments %d\n", argc);
+    fprintf(stderr, "Incorrect number of arguments %d\npass in port and www", argc);
     return EXIT_FAILURE;
   }
 
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  fprintf(log_file, "----- Echo Server -----\n");
+  fprintf(stdout, "----- Echo Server -----\n");
   if ((server_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
     fprintf(stderr, "Failed creating socket.\n");
     return EXIT_FAILURE;
@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
             memset(incoming_buf, 0, INCOMING_BUF_SIZE); // why do we do this outside of privacy?
 
             // respond if necesssary
-            if (outgoing_byte_count == 0) { // if we have a response, send it
+            if (outgoing_byte_count != 0) { // if we have a response, send it
               if (send(i, outgoing_buf, strlen(outgoing_buf), 0) != strlen(outgoing_buf)) {
                 cleanup_socks(min_sock, max_sock);
                 fprintf(stderr, "Error sending to client.\n");

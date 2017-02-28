@@ -59,9 +59,11 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   }
 
   if (parse(existing_data, size, &request) != 0) {
+    printf("failed to parse: %s", existing_data);
     free(existing_data);
     response = get_default_response(400);
     marshalled_response = marshal_response(&response);
+    printf("%s\n", marshalled_response);
     strcpy(response_buf, marshalled_response);
     free(marshalled_response);
     return strlen(response_buf);

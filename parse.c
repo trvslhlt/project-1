@@ -63,7 +63,6 @@ int parse(char *buffer, int size, Request *request) {
     }
   }
   //TODO Handle Malformed Requests
-  printf("Parsing Failed\n");
   return -1;
 }
 
