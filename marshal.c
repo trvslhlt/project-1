@@ -32,13 +32,13 @@ char* marshal_response_header(Response_header *header) {
   int i;
   char *marshalled;
   char *buf = (char *) malloc(DUMB_DEFAULT_SIZE);
+  printf("mmmmmmmmm before marshal_status\n");
   char *status_line = marshal_status(header);
   strcpy(buf, status_line);
   free(status_line);
 
   printf("mmmmmmmmm marshal header fields\n");
   for (i = 0; i < header->field_count; i++) {
-    printf("%s\n", marshalled);
     marshalled = marshal_response_header_field(&(header->fields[i]));
     strcat(buf, marshalled);
     free(marshalled);
