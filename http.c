@@ -29,21 +29,25 @@ int get_method(char *http_method_str);
 char *permanent_serve_folder;
 bool following_continue; // bool to keep track of POSTs (send continue then OK)
 Request *last_post_req;
-
+char existing_data[BIG_DUMB_NUMBER];
 
 int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
+  printf("----- http_handle_data\n");
   Request request;
   Response response;
   char *marshalled_response;
   // TODO: get existing data for socket_fd
-  char *existing_data = malloc(BIG_DUMB_NUMBER);
+  memset(existing_data, 0, sizeof(existing_data));
+  // char *existing_data = malloc(BIG_DUMB_NUMBER);
     
+  printf("----- update existing_data\n");
   // update existing data
   strcpy(existing_data, request_buf);
   
+  printf("----- check if existing_data is valid\n");
   // check if existing data is invalid
   if (invalid_request_data(existing_data)) {
-    free(existing_data);
+    // free(existing_data);
     response = get_default_response(400);
     marshalled_response = marshal_response(&response);
     strcpy(response_buf, marshalled_response);
@@ -51,16 +55,18 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
     return strlen(response_buf);
   }
   
+  printf("----- check if complete request data\n");
   // check if existing data is a complete request
   if (!complete_request(existing_data)) {
     // TODO: don't throw away data, wait for next event on socket
-    free(existing_data);
+    // free(existing_data);
     return 0;
   }
 
+  printf("----- parse to request\n");
   if (parse(existing_data, size, &request) != 0) {
-    printf("failed to parse: %s", existing_data);
-    free(existing_data);
+    printf("----- failed to parse: %s", existing_data);
+    // free(existing_data);
     response = get_default_response(400);
     marshalled_response = marshal_response(&response);
     printf("%s\n", marshalled_response);
@@ -68,16 +74,17 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
     free(marshalled_response);
     return strlen(response_buf);
   }
-  // TODO: don't throw away data, wait for next event on socket
-  free(existing_data);
+  printf("----- finished parsing: %s", existing_data);
   
+  printf("----- handle request\n");
   if (handle_request(&request, &response) != 0) {
+    printf("----- failed to handle request\n");
     get_default_response(500);
   }
   
-  // TODO: delete persistent store of existing_data
-  free(existing_data);
+  printf("----- return the response\n");
   marshalled_response = marshal_response(&response);
+  printf("----- response data: %s\n", marshalled_response);
   strcpy(response_buf, marshalled_response);
   free(marshalled_response);
   return strlen(response_buf);
@@ -338,5 +345,5 @@ Response get_default_response(int status_code) {
   Response_header_field fields[1] = {field}; 
   header.fields = fields;
   header.field_count = 1;
-  return (Response){header, "This is the test body of a bad request response.\n"};
+  return (Response){header, NULL};
 }
