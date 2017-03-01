@@ -38,6 +38,7 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   char *marshalled_response;
   // TODO: get existing data for socket_fd
   memset(existing_data, 0, sizeof(existing_data));
+  printf("----- %zd\n", strlen(existing_data));
   // char *existing_data = malloc(BIG_DUMB_NUMBER);
     
   printf("----- update existing_data\n");

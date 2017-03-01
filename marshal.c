@@ -36,6 +36,7 @@ char* marshal_response_header(Response_header *header) {
   strcpy(buf, status_line);
   free(status_line);
   
+  printf("mmmmmmmmm marshal header fields\n");
   for (i = 0; i < header->field_count; i++) {
     marshalled = marshal_response_header_field(&(header->fields[i]));
     strcat(buf, marshalled);
@@ -47,6 +48,7 @@ char* marshal_response_header(Response_header *header) {
 char* marshal_status(Response_header *header) {
   printf("mmmmmmmmm marshal_status\n");
   char *buf = (char *)malloc(DUMB_DEFAULT_SIZE);
+  printf("mmmmmmmmm malloced\n");
   char *reason = get_reason(header->status_code);
   char *status[3];
   sprintf(status, "%d", header->status_code);
@@ -56,7 +58,8 @@ char* marshal_status(Response_header *header) {
   strcat(buf, status);
   strcat(buf, " ");
   strcat(buf, reason);
-  strcat(buf, "\r\n");
+  strcat(buf, "\n");
+  printf("mmmmmmmmm return marshalled status\n");
   return buf;
 }
 
