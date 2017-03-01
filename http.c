@@ -167,7 +167,7 @@ Response get_custom_response(Request *request, int method) {
   int field_count = 0;
   FILE *file_requested;
 
-  char *filepath = malloc(300);
+  char *filepath = calloc(300, sizeof(char));
   strcpy(filepath, permanent_serve_folder);
   strcat(filepath, "/");
   strcat(filepath, request->header.uri + 1);
@@ -185,9 +185,7 @@ Response get_custom_response(Request *request, int method) {
   // status line creation
   if(strcmp(request->header.http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
     response.header.status_code = 505;
-    Response_header_field connection_field;
-    strcpy(connection_field.name, "Connection");
-    strcpy(connection_field.value, "close");
+    Response_header_field connection_field = get_header_field("Connection", "close");
     field_count++;
     Response_header_field fields[3] = {server_field, date_field, connection_field};
     response.header.fields = fields;
@@ -210,7 +208,7 @@ Response get_custom_response(Request *request, int method) {
     sprintf(size_str, "%d", file_size); // convert file size to a string
     char *mime = get_mime_type(request->header.uri);
 
-    char *entity_buffer = malloc(file_size);
+    char *entity_buffer = calloc(file_size, sizeof(char));
     if(method == GET) {
       fread(entity_buffer, file_size, 1, file_requested);
       response.body = entity_buffer;
