@@ -192,11 +192,9 @@ Response get_default_response(int status_code) {
 }
 
 Response get_custom_response(Request *request, int method) {
-  char * entity_buffer = malloc(10000);
-
+  char *entity_buffer = malloc(10000);
   Response_header header;
   int field_count = 0;
-
   FILE *file_requested;
 
   // time formatting code, from http://stackoverflow.com/questions/7548759/generate-a-date-string-in-http-response-date-format-in-c
@@ -306,8 +304,7 @@ Response get_custom_response(Request *request, int method) {
 
       if(method == GET) {
         return (Response){header, entity_buffer};
-      }
-      else {
+      } else {
         return (Response){header, NULL};
       }
     } else {
