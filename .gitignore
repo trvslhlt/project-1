@@ -4,6 +4,7 @@ echo_client
 example
 y.tab.c
 y.tab.h
+lex.yy.c
 
 # log file
 log.txt
@@ -43,4 +44,4 @@ log.txt
 *.su
 
 # Python
-*.pyc
+**/*.pyc

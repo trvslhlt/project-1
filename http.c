@@ -20,7 +20,6 @@ Response get_custom_response(Request *, int);
 int handle_request(Request *request, Response *response);
 char* get_reason(int);
 char* assemble_status_line(int);
-char* get_response(Request *, char *, int);
 char* make_header(char *, char *);
 char* get_mime_type(char *);
 int set_serve_folder(char *);
@@ -119,40 +118,6 @@ int handle_request(Request *request, Response *response) {
   // }
 
   return 0;
-
-  // char *method = request.http_method;
-  //
-  // if (strcmp(method,"GET") == 0) {
-  //   printf("GET request made\n");
-  //   strcpy(header, get_response(request, entity_buffer, GET));
-  //   strcpy(response_buf, header); // start with the headers
-  //   strcat(response_buf, entity_buffer); // add the actual content of the response
-  //   strcat(response_buf, "\r\n"); // to end response
-  // }
-  // else if (strcmp(method,"POST") == 0) {
-  //   printf("POST request made\n");
-  //   strcpy(header, get_response(request , entity_buffer, POST));
-  //   strcpy(response_buf, header);
-  //   following_continue = true;
-  // }
-  // else if (strcmp(method,"HEAD") == 0) {
-  //   printf("HEAD request made\n");
-  //   strcpy(header, get_response(request , entity_buffer, HEAD));
-  //   strcpy(response_buf, header);
-  // }
-  // else {
-  //   printf("Unimplemented method request made\n");
-  //
-  //   strcat(header, assemble_status_line(501)); // return unimplemented line
-  //   // standard headers
-  //   strcat(header, make_header("Server", "Liso/1.0"));
-  //   strcat(header, "\r\n"); // end of header line
-  //   strcpy(response_buf, header);
-  // }
-  //
-  // free(header);
-  // free(entity_buffer);
-  // // free(request);
 }
 
 int get_method(char *http_method_str) {
@@ -167,134 +132,10 @@ int get_method(char *http_method_str) {
   }
 }
 
-int set_serve_folder(char * serve_folder) {
-  permanent_serve_folder = malloc(200);
-  strcpy(permanent_serve_folder, serve_folder);
-  return 0;
-}
-
-int set_continue(bool continue_status) {
-  following_continue = continue_status;
-  return 0;
-}
-
-// this function returns the headers, and if the request is a GET,
-// it will also write the file content to entity_buffer (for head, will skip this step)
-char* get_response(Request *request, char *entity_buffer, int method) {
-  char *header = malloc(8192);
-  char *statusline = malloc(500);
-  FILE *file_requested;
-
-  // time formatting code, from http://stackoverflow.com/questions/7548759/generate-a-date-string-in-http-response-date-format-in-c
-  char timebuf[300];
-  time_t now = time(0);
-  struct tm tm = *gmtime(&now);
-  strftime(timebuf, sizeof(timebuf), "%a, %d %b %Y %H:%M:%S %Z", &tm);
-
-  char * filepath = malloc(300);
-  strcpy(filepath, permanent_serve_folder);
-  strcat(filepath, "/");
-  strcat(filepath, request->header.uri + 1);
-
-  // status line creation
-  if(strcmp(request->header.http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
-    strcpy(statusline, assemble_status_line(505));
-    strcpy(header, statusline);
-    strcat(header, make_header("Connection", "close"));
-  } else if (access(filepath, F_OK) == -1) { // throw 404 if file not accessible
-    strcpy(statusline, assemble_status_line(404));
-    strcpy(header, statusline);
-  }
- else {
-    file_requested = fopen(filepath, "r"); // open the file requested
-
-    // get file size
-    fseek(file_requested, 0L, SEEK_END);
-    int file_size = ftell(file_requested);
-    fseek(file_requested, 0L, SEEK_SET);
-
-    char * size_str = malloc(200);
-    sprintf(size_str, "%d", file_size); // convert file size to a string
-
-    char *mime = malloc(30);
-
-    // get the file extension
-    char *ext = strrchr(request->header.uri + 1, '.');
-
-    // determine MIME type
-    if (!ext) { // null extension
-        strcpy(mime, "unknown");
-    } else { // get mime type from helper function
-        strcpy(mime, get_mime_type(ext+1));
-    }
-
-    // if we're getting more than head (haha), copy the file into our entity buffer
-    if(method == GET) {
-      fread(entity_buffer, file_size, 1, file_requested); // WARNING: entity_buffer is allocated 10000 bytes before it is passed in,
-                                                          // so this copy is unsafe if the file is larger than this
-    }
-
-    fclose(file_requested);
-
-    // get modified time
-    struct stat attr;
-    stat(filepath, &attr);
-
-    // save last modified time to string
-    char modtimebuf[200];
-    time_t modified_time = attr.st_mtime;
-    struct tm tmx = *gmtime(&modified_time);
-    strftime(modtimebuf, sizeof(modtimebuf), "%a, %d %b %Y %H:%M:%S %Z", &tmx);
-
-    printf("in herenow %d", following_continue);
-
-    if((method == POST) && (following_continue == false)) { // send a continue
-      printf("hello");
-      strcpy(statusline, assemble_status_line(100));
-      last_post_req = request;
-    }
-    else {
-      strcpy(statusline, assemble_status_line(200)); // generate status line OK
-    }
-
-    // assemble the headers
-    strcpy(header, statusline);
-    if(method == GET) { // no need if the content is a post
-      strcat(header, make_header("Content-Length", size_str));
-      strcat(header, make_header("Content-Type", mime));
-      strcat(header, make_header("Modified-Time", modtimebuf));
-    }
-
-    if(method == POST) {
-      strcat(header, make_header("Content-Length", "0"));
-    }
-
-    strcat(header, make_header("Connection", "close"));
-
-    // TODO: figure out how to free this
-    // free(modtimebuf);
-    // free(mime);
-    // free(ext);
-    // free(size_str);
-  }
-
-  strcat(header, make_header("Date", timebuf));
-
-  // standard headers
-  strcat(header, make_header("Server", "Liso/1.0"));
-  strcat(header, "\r\n"); // end of header line
-
-  free(statusline);
-
-  return header;
-}
-
 char* assemble_status_line(int status_code) {
-  char *status_line = malloc(500); // ********* may be overkill
+  char *status_line = malloc(500);
   char *http_version = "HTTP/1.1";
-
   char *reason = get_reason(status_code);
-
   char status_str[3];
   sprintf(status_str, "%d", status_code);
 
@@ -304,7 +145,6 @@ char* assemble_status_line(int status_code) {
   strcat(status_line, " ");
   strcat(status_line, reason);
   strcat(status_line, "\r\n");
-
   return status_line;
 }
 
@@ -325,19 +165,16 @@ char* get_mime_type(char *extension) {
   } else {
     strcpy(mime_type, "unknown");
   }
-
   return mime_type;
 }
 
 // helper to create a new header field
 char* make_header(char *name, char *value) {
   char *header = malloc(2096);
-
   strcpy(header, name);
   strcat(header, ": ");
   strcat(header, value);
   strcat(header, "\r\n");
-
   return header;
 }
 
@@ -354,7 +191,7 @@ Response get_default_response(int status_code) {
   return (Response){header, NULL};
 }
 
-Response get_custom_response(Request * request, int method) {
+Response get_custom_response(Request *request, int method) {
   char * entity_buffer = malloc(10000);
 
   Response_header header;
@@ -368,7 +205,7 @@ Response get_custom_response(Request * request, int method) {
   struct tm tm = *gmtime(&now);
   strftime(timebuf, sizeof(timebuf), "%a, %d %b %Y %H:%M:%S %Z", &tm);
 
-  char * filepath = malloc(300);
+  char *filepath = malloc(300);
   strcpy(filepath, permanent_serve_folder);
   strcat(filepath, "/");
   strcat(filepath, request->header.uri + 1);
@@ -389,45 +226,32 @@ Response get_custom_response(Request * request, int method) {
   // status line creation
   if(strcmp(request->header.http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
     header.status_code = 505;
-
     Response_header_field connection_field;
     strcpy(connection_field.name, "Connection");
     strcpy(connection_field.value, "close");
     field_count++;
-
     Response_header_field fields[3] = {server_field, date_field, connection_field};
     header.fields = fields;
     header.field_count = field_count;
-
     return (Response){header, NULL};
-  }
-  else if (access(filepath, F_OK) == -1) { // throw 404 if file not accessible
+  } else if (access(filepath, F_OK) == -1) { // throw 404 if file not accessible
     header.status_code = 505;
-
     Response_header_field fields[2] = {server_field, date_field};
     header.fields = fields;
-
     header.field_count = field_count;
-
     return (Response){header, NULL};
-  }
-  else {
+  } else {
     file_requested = fopen(filepath, "r"); // open the file requested
 
     // get file size
     fseek(file_requested, 0L, SEEK_END);
     int file_size = ftell(file_requested);
     fseek(file_requested, 0L, SEEK_SET);
-
-    char * size_str = malloc(200);
+    char *size_str = malloc(200);
     sprintf(size_str, "%d", file_size); // convert file size to a string
-
     char *mime = malloc(30);
+    char *ext = strrchr(request->header.uri + 1, '.'); // get the file extension
 
-    // get the file extension
-    char *ext = strrchr(request->header.uri + 1, '.');
-
-    // determine MIME type
     if (!ext) { // null extension
         strcpy(mime, "unknown");
     } else { // get mime type from helper function
@@ -455,8 +279,7 @@ Response get_custom_response(Request * request, int method) {
     if((method == POST) && (following_continue == false)) { // send a continue
       header.status_code = 100;
       last_post_req = request;
-    }
-    else {
+    } else {
       header.status_code = 200;
     }
 
@@ -487,8 +310,7 @@ Response get_custom_response(Request * request, int method) {
       else {
         return (Response){header, NULL};
       }
-    }
-    else {
+    } else {
       Response_header_field content_length_field;
       strcpy(content_length_field.name, "Content-Length");
       strcpy(content_length_field.value, "0");
@@ -501,4 +323,15 @@ Response get_custom_response(Request * request, int method) {
       return (Response){header, NULL};
     }
   }
+}
+
+int set_serve_folder(char *serve_folder) {
+  permanent_serve_folder = malloc(200);
+  strcpy(permanent_serve_folder, serve_folder);
+  return 0;
+}
+
+int set_continue(bool continue_status) {
+  following_continue = continue_status;
+  return 0;
 }
