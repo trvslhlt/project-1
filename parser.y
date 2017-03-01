@@ -189,16 +189,16 @@ t_ws {
 
 request_line: token t_sp text t_sp text t_crlf {
 	YPRINTF("request_Line:\n%s\n%s\n%s\n",$1, $3,$5);
-  strcpy(parsing_request->http_method, $1);
-	strcpy(parsing_request->http_uri, $3);
-	strcpy(parsing_request->http_version, $5);
+  strcpy(parsing_request->header.method, $1);
+	strcpy(parsing_request->header.uri, $3);
+	strcpy(parsing_request->header.http_version, $5);
 }
 
 request_header: token ows t_colon ows text ows t_crlf {
 	YPRINTF("request_Header:\n%s\n%s\n",$1,$5);
-  strcpy(parsing_request->headers[parsing_request->header_count].header_name, $1);
-	strcpy(parsing_request->headers[parsing_request->header_count].header_value, $5);
-	parsing_request->header_count++;
+  strcpy(parsing_request->header.fields[parsing_request->header.field_count].name, $1);
+	strcpy(parsing_request->header.fields[parsing_request->header.field_count].value, $5);
+	parsing_request->header.field_count++;
 };
 
 

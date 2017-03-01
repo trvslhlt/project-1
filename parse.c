@@ -1,20 +1,21 @@
 #include "parse.h"
 
-/**
-* Given a char buffer returns the parsed request headers
-*/
-Request * parse(char *buffer, int size, int socketFd) {
-  //Differant states in the state machine
-  enum {
+
+#define BUF_SIZE 8192
+
+int parse(char *buffer, int size, Request *request) {
+  printf("pppppppp: parse: %s\n", buffer);
+  enum { //Differant states in the state machine
     STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF
   };
 
   int i = 0, state;
   size_t offset = 0;
   char ch;
-  char buf[8192];
-  memset(buf, 0, 8192);
+  char buf[BUF_SIZE];
+  memset(buf, 0, BUF_SIZE);
 
+  printf("pppppppp: state machine\n");
   state = STATE_START;
   while (state != STATE_CRLFCRLF) {
     char expected = 0;
@@ -49,20 +50,35 @@ Request * parse(char *buffer, int size, int socketFd) {
   }
 
   //Valid End State
+  printf("pppppppp: valid end state\n");
   if (state == STATE_CRLFCRLF) {
-    Request *request = (Request *) malloc(sizeof(Request));
-    request->header_count = 0;
+    request->header.field_count = 0;
     //TODO You will need to handle resizing this in parser.y
-    request->headers = (Request_header *) malloc(sizeof(Request_header) * 1);
+    
+    printf("pppppppp: before assigning header fields memory\n");
+    request->header.fields = (Request_header_field *) malloc(sizeof(Request_header_field) * 1);
+    printf("pppppppp: after assigning\n");
     set_parsing_options(buf, i, request);
-
+    printf("pppppppp: before yyparse\n");
     if (yyparse() == SUCCESS) {
-      return request;
-		}
-		else { // **********
-			return request;
-		}
-	}
+      printf("pppppppp: after yyparse succeeded\n");
+      return 0;
+    } else { // **********
+      printf("pppppppp: after yyparse failed\n");
+      return -1;
+    }
+  }
   //TODO Handle Malformed Requests
-  printf("Parsing Failed\n");
+  printf("pppppppp: not a valid end_state\n");
+  return -1;
+}
+
+int invalid_request_data(char *request_data) {
+  //TODO: implement
+  return 0;
+}
+
+int complete_request(char *request_data) {
+  // TODO: implement
+  return 1;
 }

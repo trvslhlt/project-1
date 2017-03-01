@@ -4,24 +4,24 @@
 
 #define SUCCESS 0
 
-//Header field
 typedef struct {
-	char header_name[4096];
-	char header_value[4096];
-} Request_header;
+	char name[4096];
+	char value[4096];
+} Request_header_field;
 
-//HTTP Request Header
 typedef struct {
 	char http_version[50];
-	char http_method[50];
-	char http_uri[4096];
-	Request_header *headers;
-	int header_count;
+	char method[50];
+	char uri[4096];
+	Request_header_field *fields;
+	int field_count;
+} Request_header;
+
+typedef struct {
+	Request_header header;
+	char *body;
 } Request;
 
-// TODO: might want to change the signature
-// so the function can return an error code, and assign a new Request
-// struct internally. right now if a null pointer were returned
-// it could mean the data in buffer is a partial request, OR
-// a complete malformed one
-Request* parse(char *buffer, int size,int socketFd);
+int parse(char *buffer, int size, Request *request);
+int invalid_request_data(char *request_data); // not asking if complete, only if already invalid or malformed
+int complete_request(char *request_data);
