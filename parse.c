@@ -4,7 +4,7 @@
 #define BUF_SIZE 8192
 
 int parse(char *buffer, int size, Request *request) {
-  
+  printf("pppppppp: parse: %s\n", buffer);
   enum { //Differant states in the state machine
     STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF
   };
@@ -15,6 +15,7 @@ int parse(char *buffer, int size, Request *request) {
   char buf[BUF_SIZE];
   memset(buf, 0, BUF_SIZE);
 
+  printf("pppppppp: state machine\n");
   state = STATE_START;
   while (state != STATE_CRLFCRLF) {
     char expected = 0;
@@ -49,20 +50,26 @@ int parse(char *buffer, int size, Request *request) {
   }
 
   //Valid End State
+  printf("pppppppp: valid end state\n");
   if (state == STATE_CRLFCRLF) {
     request->header.field_count = 0;
     //TODO You will need to handle resizing this in parser.y
     
+    printf("pppppppp: before assigning header fields memory\n");
     request->header.fields = (Request_header_field *) malloc(sizeof(Request_header_field) * 1);
+    printf("pppppppp: after assigning\n");
     set_parsing_options(buf, i, request);
-
+    printf("pppppppp: before yyparse\n");
     if (yyparse() == SUCCESS) {
+      printf("pppppppp: after yyparse succeeded\n");
       return 0;
     } else { // **********
+      printf("pppppppp: after yyparse failed\n");
       return -1;
     }
   }
   //TODO Handle Malformed Requests
+  printf("pppppppp: not a valid end_state\n");
   return -1;
 }
 
