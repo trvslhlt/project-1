@@ -52,9 +52,9 @@ int main(int argc, char* argv[]) {
   }
 
   signal(SIGINT, interrupt_handler);
-  log_file = fopen( "log.txt", "w" ); // Open file for writing
+  log_file = stdout;//fopen( "log.txt", "w" ); // Open file for writing
   if (log_file == NULL) {
-    fprintf(stdout, "log file not available");
+    fprintf(stdout, "log file not available\n");
     return EXIT_FAILURE;
   }
 
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "Error accepting connection.\n");
             return EXIT_FAILURE;
           } else {
-            fprintf(log_file, "connection accepted on socket: %d", new_sock);
+            fprintf(log_file, "connection accepted on socket: %d\n", new_sock);
             FD_SET(new_sock, &master_set);
             if(new_sock > max_sock) {
               max_sock = new_sock;
@@ -150,6 +150,8 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Error sending to client.\n");
                 return EXIT_FAILURE;
               }
+              close_socket(i);
+              FD_CLR(i, &master_set);
               fprintf(log_file, "sent data to client: %d\n", i);
               memset(outgoing_buf, 0, OUTGOING_BUF_SIZE);
             }
