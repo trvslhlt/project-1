@@ -22,7 +22,7 @@ char* marshal_response(Response *response) {
     printf("mmmmmmmmm has body %s\n", response->body);
     strcat(data, "\n");
     strcat(data, response->body);
-  } 
+  }
   strcat(data, "\r\n");
   return data;
 }
@@ -35,9 +35,10 @@ char* marshal_response_header(Response_header *header) {
   char *status_line = marshal_status(header);
   strcpy(buf, status_line);
   free(status_line);
-  
+
   printf("mmmmmmmmm marshal header fields\n");
   for (i = 0; i < header->field_count; i++) {
+    printf("%s\n", marshalled);
     marshalled = marshal_response_header_field(&(header->fields[i]));
     strcat(buf, marshalled);
     free(marshalled);
@@ -52,7 +53,7 @@ char* marshal_status(Response_header *header) {
   char *reason = get_reason(header->status_code);
   char *status[3];
   sprintf(status, "%d", header->status_code);
-  
+
   strcpy(buf, header->http_version);
   strcat(buf, " ");
   strcat(buf, status);
