@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
 
             // respond if necesssary
             if (outgoing_byte_count != 0) { // if we have a response, send it
+              printf("%s", outgoing_buf);
               if (send(i, outgoing_buf, strlen(outgoing_buf), 0) != strlen(outgoing_buf)) {
                 cleanup_socks(min_sock, max_sock);
                 fprintf(stderr, "Error sending to client.\n");
