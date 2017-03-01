@@ -43,13 +43,14 @@ int main(int argc, char* argv[]) {
   int i;
   ssize_t incoming_byte_count, outgoing_byte_count;
 
-  int srve_test = set_serve_folder(argv[2]);
+  int srve_test = set_serve_folder(argv[5]);
   int cont = set_continue(false);
 
-  if (argc != 3) { // need port and folder to serve from
-    fprintf(stderr, "Incorrect number of arguments %d\npass in port and www", argc);
-    return EXIT_FAILURE;
-  }
+  // can't rely on this
+  // if (argc != 3) { // need port and folder to serve from
+  //   fprintf(stderr, "Incorrect number of arguments %d\npass in port and www", argc);
+  //   return EXIT_FAILURE;
+  // }
 
   signal(SIGINT, interrupt_handler);
   log_file = stdout;//fopen( "log.txt", "w" ); // Open file for writing
