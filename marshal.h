@@ -18,4 +18,5 @@ typedef struct {
   char *body;
 } Response;
 
-char* marshal_response(Response *response);
+void marshal_response(Response *response, char *buf);
+void get_reason(int status_code, char *reason);

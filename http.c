@@ -17,14 +17,13 @@ Response_header_field get_header_field(char *, char *);
 Response_header_field get_date_header_field();
 Response_header_field get_modified_time_header_field(char *filepath);
 int handle_request(Request *request, Response *response);
-char* get_reason(int);
-char* assemble_status_line(int);
+void assemble_status_line(int, char*);
 char* get_mime_type(char *);
 int set_serve_folder(char *);
 int set_continue(bool);
 int get_method(char *http_method_str);
 
-char *permanent_serve_folder;
+char permanent_serve_folder[200];
 bool following_continue; // bool to keep track of POSTs (send continue then OK)
 Request *last_post_req;
 char existing_data[BIG_DUMB_NUMBER];
@@ -33,12 +32,11 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   printf("----- http_handle_data\n");
   Request request;
   Response response;
-  char *marshalled_response;
+  char marshalled_response[BIG_DUMB_NUMBER];
 
   // TODO: get existing data for socket_fd
   memset(existing_data, 0, sizeof(existing_data));
   printf("----- %zd\n", strlen(existing_data));
-  // char *existing_data = malloc(BIG_DUMB_NUMBER);
 
   printf("----- update existing_data\n");
   // update existing data
@@ -47,31 +45,25 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   printf("----- check if existing_data is valid\n");
   // check if existing data is invalid
   if (invalid_request_data(existing_data)) {
-    // free(existing_data);
     response = get_default_response(400);
-    marshalled_response = marshal_response(&response);
+    marshal_response(&response, marshalled_response);
     strcpy(response_buf, marshalled_response);
-    free(marshalled_response);
     return strlen(response_buf);
   }
 
   printf("----- check if complete request data\n");
   // check if existing data is a complete request
   if (!complete_request(existing_data)) {
-    // TODO: don't throw away data, wait for next event on socket
-    // free(existing_data);
     return 0;
   }
 
   printf("----- parse to request\n");
   if (parse(existing_data, size, &request) != 0) {
     printf("----- failed to parse: %s", existing_data);
-    // free(existing_data);
     response = get_default_response(400);
-    marshalled_response = marshal_response(&response);
+    marshal_response(&response, marshalled_response);
     printf("%s\n", marshalled_response);
     strcpy(response_buf, marshalled_response);
-    free(marshalled_response);
     return strlen(response_buf);
   }
   printf("----- finished parsing: %s", existing_data);
@@ -83,10 +75,9 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   }
 
   printf("----- return the response\n");
-  marshalled_response = marshal_response(&response);
+  marshal_response(&response, marshalled_response);
   printf("----- response data: %s\n", marshalled_response);
   strcpy(response_buf, marshalled_response);
-  free(marshalled_response);
   return strlen(response_buf);
 }
 
@@ -113,10 +104,10 @@ int get_method(char *http_method_str) {
   }
 }
 
-char* assemble_status_line(int status_code) {
-  char *status_line = malloc(500);
+void assemble_status_line(int status_code, char* status_line) {
   char *http_version = "HTTP/1.1";
-  char *reason = get_reason(status_code);
+  char reason[BIG_DUMB_NUMBER];
+  get_reason(status_code, reason);
   char status_str[3];
   sprintf(status_str, "%d", status_code);
 
@@ -126,7 +117,6 @@ char* assemble_status_line(int status_code) {
   strcat(status_line, " ");
   strcat(status_line, reason);
   strcat(status_line, "\r\n");
-  return status_line;
 }
 
 Response get_default_response(int status_code) {
@@ -201,7 +191,7 @@ Response get_custom_response(Request *request, int method) {
     fseek(file_requested, 0L, SEEK_END);
     int file_size = ftell(file_requested);
     fseek(file_requested, 0L, SEEK_SET);
-    char *size_str = malloc(200);
+    char size_str[200];
     sprintf(size_str, "%d", file_size); // convert file size to a string
     char *mime = get_mime_type(request->header.uri);
 
@@ -253,7 +243,6 @@ Response get_custom_response(Request *request, int method) {
 }
 
 int set_serve_folder(char *serve_folder) {
-  permanent_serve_folder = malloc(200);
   strcpy(permanent_serve_folder, serve_folder);
   return 0;
 }
