@@ -4,54 +4,48 @@
 
 
 #define MAX_FIELD_SIZE 8192
-#define DUMB_DEFAULT_SIZE 10000
+#define BIG_DUMB_NUMBER 10000
 
-extern char* get_reason(int status_code);
-extern char* marshal_response_header(Response_header *header);
-extern char* marshal_response_header_field(Response_header_field *field);
-extern char* marshal_status(Response_header *header);
+extern void marshal_response_header(Response_header *header, char *buf);
+extern void marshal_response_header_field(Response_header_field *field, char *buf);
+extern void marshal_status(Response_header *header, char *buf);
 
 
-char* marshal_response(Response *response) {
+void marshal_response(Response *response, char* data) {
   printf("mmmmmmmmm marshal_response\n");
-  char *data = malloc(DUMB_DEFAULT_SIZE);
-  char *header_data = marshal_response_header(&(response->header));
+  char header_data[BIG_DUMB_NUMBER];
+  marshal_response_header(&(response->header), header_data);
   strcpy(data, header_data);
-  free(header_data);
   if (response->body) {
     printf("mmmmmmmmm has body %s\n", response->body);
     strcat(data, "\n");
     strcat(data, response->body);
   }
   strcat(data, "\r\n");
-  return data;
 }
 
-char* marshal_response_header(Response_header *header) {
+void marshal_response_header(Response_header *header, char *buf) {
   printf("mmmmmmmmm marshal_response_header\n");
   int i;
-  char *marshalled;
-  char *buf = (char *) malloc(DUMB_DEFAULT_SIZE);
+  char marshalled[BIG_DUMB_NUMBER];
   printf("mmmmmmmmm before marshal_status\n");
-  char *status_line = marshal_status(header);
+  char status_line[BIG_DUMB_NUMBER];
+  marshal_status(header, status_line);
+
   strcpy(buf, status_line);
-  free(status_line);
 
   printf("mmmmmmmmm marshal header fields\n");
   for (i = 0; i < header->field_count; i++) {
-    marshalled = marshal_response_header_field(&(header->fields[i]));
+    marshal_response_header_field(&(header->fields[i]), marshalled);
     strcat(buf, marshalled);
-    free(marshalled);
   }
-  return buf;
 }
 
-char* marshal_status(Response_header *header) {
+void marshal_status(Response_header *header, char *buf) {
   printf("mmmmmmmmm marshal_status\n");
-  char *buf = (char *)malloc(DUMB_DEFAULT_SIZE);
-  printf("mmmmmmmmm malloced\n");
-  char *reason = get_reason(header->status_code);
-  char *status[3];
+  char reason[100];
+  get_reason(header->status_code, reason);
+  char status[3];
   sprintf(status, "%d", header->status_code);
 
   strcpy(buf, header->http_version);
@@ -60,53 +54,48 @@ char* marshal_status(Response_header *header) {
   strcat(buf, " ");
   strcat(buf, reason);
   strcat(buf, "\n");
-  printf("mmmmmmmmm return marshalled status\n");
-  return buf;
 }
 
-char* marshal_response_header_field(Response_header_field *field) {
+void marshal_response_header_field(Response_header_field *field, char* buf) {
   printf("mmmmmmmmm marshal_response_header_field\n");
-  char *buf = (char *)malloc(DUMB_DEFAULT_SIZE);
   strcpy(buf, field->name);
   strcat(buf, ": ");
   strcat(buf, field->value);
   strcat(buf, "\n");
-  return buf;
 }
 
-char* get_reason(int status_code) {
+void get_reason(int status_code, char *reason) {
   printf("mmmmmmmmm get_reason\n");
-  char *reason;
+
   switch (status_code) {
     case 100:
-      reason = "Continue";
+      strcpy(reason,"Continue");
       break;
     case 200:
-      reason = "OK";
+      strcpy(reason, "OK");
       break;
     case 400:
-      reason = "Bad Request";
+      strcpy(reason, "Bad Request");
       break;
     case 404:
-      reason = "Not Found";
+      strcpy(reason, "Not Found");
       break;
     case 411:
-      reason = "Length Required";
+      strcpy(reason,"Length Required");
       break;
     case 500:
-      reason = "Internal Server Error";
+      strcpy(reason, "Internal Server Error");
       break;
     case 501:
-      reason = "Not Implemented";
+      strcpy(reason, "Not Implemented");
       break;
     case 503:
-      reason = "Service Unavailable";
+      strcpy(reason, "Service Unavailable");
       break;
     case 505:
-      reason = "HTTP Version not supported";
+      strcpy(reason, "HTTP Version not supported");
       break;
     default:
-      reason = "Internal Server Error";
+      strcpy(reason, "Internal Server Error");
   }
-  return reason;
 }

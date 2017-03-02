@@ -17,63 +17,61 @@ Response_header_field get_header_field(char *, char *);
 Response_header_field get_date_header_field();
 Response_header_field get_modified_time_header_field(char *filepath);
 int handle_request(Request *request, Response *response);
-char* get_reason(int);
-char* assemble_status_line(int);
+void assemble_status_line(int, char*);
 char* get_mime_type(char *);
 int set_serve_folder(char *);
-int set_continue(bool);
 int get_method(char *http_method_str);
 
-char *permanent_serve_folder;
-bool following_continue; // bool to keep track of POSTs (send continue then OK)
+char permanent_serve_folder[200];
 Request *last_post_req;
 char existing_data[BIG_DUMB_NUMBER];
 
 int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
-  freopen("output.txt", "w+", stdout);
-
   printf("----- http_handle_data\n");
   Request request;
   Response response;
-  char *marshalled_response;
+  char marshalled_response[BIG_DUMB_NUMBER];
 
   // TODO: get existing data for socket_fd
   memset(existing_data, 0, sizeof(existing_data));
   printf("----- %zd\n", strlen(existing_data));
-  // char *existing_data = malloc(BIG_DUMB_NUMBER);
 
   printf("----- update existing_data\n");
   // update existing data
   strcpy(existing_data, request_buf);
 
+  if(last_post_req) {
+    handle_request(last_post_req, &response);
+    printf("----- return the response\n");
+    marshal_response(&response, marshalled_response);
+    printf("----- response data: %s\n", marshalled_response);
+    strcpy(response_buf, marshalled_response);
+    last_post_req = NULL;
+    return strlen(response_buf);
+  }
+
   printf("----- check if existing_data is valid\n");
   // check if existing data is invalid
   if (invalid_request_data(existing_data)) {
-    // free(existing_data);
     response = get_default_response(400);
-    marshalled_response = marshal_response(&response);
+    marshal_response(&response, marshalled_response);
     strcpy(response_buf, marshalled_response);
-    free(marshalled_response);
     return strlen(response_buf);
   }
 
   printf("----- check if complete request data\n");
   // check if existing data is a complete request
   if (!complete_request(existing_data)) {
-    // TODO: don't throw away data, wait for next event on socket
-    // free(existing_data);
     return 0;
   }
 
   printf("----- parse to request\n");
   if (parse(existing_data, size, &request) != 0) {
     printf("----- failed to parse: %s", existing_data);
-    // free(existing_data);
     response = get_default_response(400);
-    marshalled_response = marshal_response(&response);
+    marshal_response(&response, marshalled_response);
     printf("%s\n", marshalled_response);
     strcpy(response_buf, marshalled_response);
-    free(marshalled_response);
     return strlen(response_buf);
   }
   printf("----- finished parsing: %s", existing_data);
@@ -85,11 +83,9 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   }
 
   printf("----- return the response\n");
-  marshalled_response = marshal_response(&response);
+  marshal_response(&response, marshalled_response);
   printf("----- response data: %s\n", marshalled_response);
   strcpy(response_buf, marshalled_response);
-  free(marshalled_response);
-
   return strlen(response_buf);
 }
 
@@ -116,10 +112,10 @@ int get_method(char *http_method_str) {
   }
 }
 
-char* assemble_status_line(int status_code) {
-  char *status_line = malloc(500);
+void assemble_status_line(int status_code, char* status_line) {
   char *http_version = "HTTP/1.1";
-  char *reason = get_reason(status_code);
+  char reason[BIG_DUMB_NUMBER];
+  get_reason(status_code, reason);
   char status_str[3];
   sprintf(status_str, "%d", status_code);
 
@@ -129,20 +125,18 @@ char* assemble_status_line(int status_code) {
   strcat(status_line, " ");
   strcat(status_line, reason);
   strcat(status_line, "\r\n");
-  return status_line;
 }
 
 Response get_default_response(int status_code) {
   Response_header header;
   strcpy(header.http_version, "HTTP/1.1");
   header.status_code = status_code;
-
-  Response_header_field server_field = get_header_field("Server", "Liso/1.0");
-  Response_header_field date_field = get_date_header_field();
-
-  Response_header_field fields[2] = {server_field, date_field};
+  Response_header_field field;
+  strcpy(field.name, "fieldName");
+  strcpy(field.value, "fieldValue");
+  Response_header_field fields[1] = {field};
   header.fields = fields;
-  header.field_count = 2;
+  header.field_count = 1;
   return (Response){header, NULL};
 }
 
@@ -162,7 +156,7 @@ Response_header_field get_modified_time_header_field(char *filepath) {
   time_t modified_time = attr.st_mtime;
   struct tm tmx = *gmtime(&modified_time);
   strftime(modtimebuf, sizeof(modtimebuf), "%a, %d %b %Y %H:%M:%S %Z", &tmx);
-  return get_header_field("Last-Modified", modtimebuf);
+  return get_header_field("Modified-Time", modtimebuf);
 }
 
 Response get_custom_response(Request *request, int method) {
@@ -186,22 +180,18 @@ Response get_custom_response(Request *request, int method) {
   Response_header_field connection = get_header_field("Connection", "keep-alive");
   field_count++;
 
-
-
   // status line creation
   if(strcmp(request->header.http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
     response.header.status_code = 505;
-    Response_header_field connection_field = get_header_field("Connection", "close");
-    field_count++;
-    Response_header_field fields[3] = {server_field, date_field, connection_field};
+    Response_header_field fields[3] = {server_field, date_field, connection};
     response.header.fields = fields;
     response.header.field_count = field_count;
     return response;
   } else if (access(filepath, F_OK) == -1) { // throw 404 if file not accessible
+    printf("%s\n", filepath);
+    last_post_req = NULL;
     response.header.status_code = 404;
-
     Response_header_field fields[3] = {server_field, date_field, connection};
-
     response.header.fields = fields;
     response.header.field_count = field_count;
     return response;
@@ -212,7 +202,7 @@ Response get_custom_response(Request *request, int method) {
     fseek(file_requested, 0L, SEEK_END);
     int file_size = ftell(file_requested);
     fseek(file_requested, 0L, SEEK_SET);
-    char *size_str = malloc(200);
+    char size_str[200];
     sprintf(size_str, "%d", file_size); // convert file size to a string
     char *mime = get_mime_type(request->header.uri);
 
@@ -223,7 +213,7 @@ Response get_custom_response(Request *request, int method) {
     }
     fclose(file_requested);
 
-    if((method == POST) && (following_continue == false)) { // send a continue
+    if((method == POST) && (last_post_req == NULL)) { // send a continue
       response.header.status_code = 100;
       last_post_req = request;
     } else {
@@ -245,7 +235,7 @@ Response get_custom_response(Request *request, int method) {
         mod_time_field,
         server_field,
         date_field,
-      connection};
+        connection};
       response.header.fields = fields;
       response.header.field_count = field_count;
       return response;
@@ -257,7 +247,7 @@ Response get_custom_response(Request *request, int method) {
         content_length_field,
         server_field,
         date_field,
-      connection};
+        connection};
       response.header.fields = fields;
       response.header.field_count = field_count;
       return response;
@@ -266,13 +256,7 @@ Response get_custom_response(Request *request, int method) {
 }
 
 int set_serve_folder(char *serve_folder) {
-  permanent_serve_folder = malloc(200);
   strcpy(permanent_serve_folder, serve_folder);
-  return 0;
-}
-
-int set_continue(bool continue_status) {
-  following_continue = continue_status;
   return 0;
 }
 

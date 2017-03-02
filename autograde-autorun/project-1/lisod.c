@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
   int i;
   ssize_t incoming_byte_count, outgoing_byte_count;
 
-  int srve_test = set_serve_folder(argv[5]);
-  int cont = set_continue(false);
+  // int srve_test = set_serve_folder(argv[5]); // for test suite
+  int srve_test = set_serve_folder(argv[2]); // for curl testing
 
   // can't rely on this
   // if (argc != 3) { // need port and folder to serve from

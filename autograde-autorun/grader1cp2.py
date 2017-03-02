@@ -86,7 +86,7 @@ class project1cp2tester(tester):
             print 'Bad Date header'
         except Exception:
             print 'Bad Date header: %s' % (headers['Date'])
-
+        
         self.pAssertEqual(int(headers['Content-Length']), length_content)
         #self.pAssertEqual(headers['Connection'].lower(), 'close')
 
@@ -167,7 +167,7 @@ class project1cp2tester(tester):
             self.skipTest("server failed to start. skip this test")
         time.sleep(1)
         for test in self.testsuite.tests:
-            # for checkpoint 2, this should time out; we told them to
+            # for checkpoint 2, this should time out; we told them to 
             # swallow the data and ignore
             try:
                 response = requests.post(test % self.testsuite.port,\
@@ -234,7 +234,7 @@ class project1cp2grader(grader):
         self.process = None
         self.checkpoint = checkpoint
         self.tests = {
-            'http://127.0.0.1:%d/index.html' :
+            'http://127.0.0.1:%d/index.html' : 
             ('f5cacdcb48b7d85ff48da4653f8bf8a7c94fb8fb43407a8e82322302ab13becd', 802),
             'http://127.0.0.1:%d/images/liso_header.png' :
             ('abf1a740b8951ae46212eb0b61a20c403c92b45ed447fe1143264c637c2e0786', 17431),

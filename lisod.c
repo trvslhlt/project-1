@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
   int i;
   ssize_t incoming_byte_count, outgoing_byte_count;
 
-  int srve_test = set_serve_folder(argv[5]);
-  int cont = set_continue(false);
+  // int srve_test = set_serve_folder(argv[5]); // for test suite
+  int srve_test = set_serve_folder(argv[2]); // for curl testing
 
   // can't rely on this
   // if (argc != 3) { // need port and folder to serve from
@@ -151,8 +151,8 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Error sending to client.\n");
                 return EXIT_FAILURE;
               }
-              close_socket(i); // TODO: is this OK? did this to support pipelining (don't close the socket unless it closes itself)
-              FD_CLR(i, &master_set);
+              //close_socket(i); // TODO: is this OK? did this to support pipelining (don't close the socket unless it closes itself)
+              //FD_CLR(i, &master_set);
               fprintf(log_file, "sent data to client: %d\n", i);
               fprintf(log_file, "data sent was: %s\n", outgoing_buf);
               memset(outgoing_buf, 0, OUTGOING_BUF_SIZE);
