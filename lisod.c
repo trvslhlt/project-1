@@ -151,8 +151,8 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Error sending to client.\n");
                 return EXIT_FAILURE;
               }
-              //close_socket(i); // TODO: is this OK? did this to support pipelining (don't close the socket unless it closes itself)
-              //FD_CLR(i, &master_set);
+              close_socket(i); // TODO: is this OK? did this to support pipelining (don't close the socket unless it closes itself)
+              FD_CLR(i, &master_set);
               fprintf(log_file, "sent data to client: %d\n", i);
               fprintf(log_file, "data sent was: %s\n", outgoing_buf);
               memset(outgoing_buf, 0, OUTGOING_BUF_SIZE);
