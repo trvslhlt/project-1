@@ -1,0 +1,14 @@
+## Testing
+
+Because we were plagued with memory leak issues, we decided to use curl to test single requests,
+instead of running the test suite, which subjects the server to multiple requests in
+a row. With curl, we tested GETs and HEADs on non-existing and existing files (to generate
+404s and 200s, respectively), and we also used the -F option to POST form data to a resource.
+While we were able to get these requests working and respond to them correctly, doing the
+same for the testing suite provided by autograder proved near impossible.
+
+## Vulnerabilities
+
+  1. slow loris attacks: There is no timeout on a client connection. The client could open a connection and leave it open without sending a request. This would eventually exhaust our socket file descriptors.
+  2. large request header fields: we do not dynamically size buffers to read the incoming header field data. It would be trivial to crash the server with lengthy header field value.
+  3. large request bodies: ditto
