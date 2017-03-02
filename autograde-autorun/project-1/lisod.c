@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
   // }
 
   signal(SIGINT, interrupt_handler);
-  log_file = stdout;//fopen( "log.txt", "w" ); // Open file for writing
+  log_file = fopen( "log.txt", "w" ); // Open file for writing
   if (log_file == NULL) {
     fprintf(stdout, "log file not available\n");
     return EXIT_FAILURE;
@@ -154,6 +154,7 @@ int main(int argc, char* argv[]) {
               //close_socket(i); // TODO: is this OK? did this to support pipelining (don't close the socket unless it closes itself)
               //FD_CLR(i, &master_set);
               fprintf(log_file, "sent data to client: %d\n", i);
+              fprintf(log_file, "data sent was: %s\n", outgoing_buf);
               memset(outgoing_buf, 0, OUTGOING_BUF_SIZE);
             }
           }

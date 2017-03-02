@@ -30,6 +30,8 @@ Request *last_post_req;
 char existing_data[BIG_DUMB_NUMBER];
 
 int http_handle_data(char *request_buf, int size, int socket_fd, char *response_buf) {
+  freopen("output.txt", "w+", stdout);
+
   printf("----- http_handle_data\n");
   Request request;
   Response response;
@@ -87,6 +89,7 @@ int http_handle_data(char *request_buf, int size, int socket_fd, char *response_
   printf("----- response data: %s\n", marshalled_response);
   strcpy(response_buf, marshalled_response);
   free(marshalled_response);
+
   return strlen(response_buf);
 }
 
@@ -133,12 +136,13 @@ Response get_default_response(int status_code) {
   Response_header header;
   strcpy(header.http_version, "HTTP/1.1");
   header.status_code = status_code;
-  Response_header_field field;
-  strcpy(field.name, "fieldName");
-  strcpy(field.value, "fieldValue");
-  Response_header_field fields[1] = {field};
+
+  Response_header_field server_field = get_header_field("Server", "Liso/1.0");
+  Response_header_field date_field = get_date_header_field();
+
+  Response_header_field fields[2] = {server_field, date_field};
   header.fields = fields;
-  header.field_count = 1;
+  header.field_count = 2;
   return (Response){header, NULL};
 }
 
@@ -158,7 +162,7 @@ Response_header_field get_modified_time_header_field(char *filepath) {
   time_t modified_time = attr.st_mtime;
   struct tm tmx = *gmtime(&modified_time);
   strftime(modtimebuf, sizeof(modtimebuf), "%a, %d %b %Y %H:%M:%S %Z", &tmx);
-  return get_header_field("Modified-Time", modtimebuf);
+  return get_header_field("Last-Modified", modtimebuf);
 }
 
 Response get_custom_response(Request *request, int method) {
@@ -175,12 +179,17 @@ Response get_custom_response(Request *request, int method) {
 
   strcpy(response.header.http_version, "HTTP/1.1");
   strcpy(response.header.http_version, "HTTP/1.1");
-  
+
   // default fields
   Response_header_field server_field = get_header_field("Server", "Liso/1.0");
   field_count++;
   Response_header_field date_field = get_date_header_field();
   field_count++;
+
+  Response_header_field connection = get_header_field("Connection", "keep-alive");
+  field_count++;
+
+
 
   // status line creation
   if(strcmp(request->header.http_version, "HTTP/1.1") != 0) { // throw 505 if client is using diff HTTP version
@@ -192,8 +201,8 @@ Response get_custom_response(Request *request, int method) {
     response.header.field_count = field_count;
     return response;
   } else if (access(filepath, F_OK) == -1) { // throw 404 if file not accessible
-    response.header.status_code = 505;
-    Response_header_field fields[2] = {server_field, date_field};
+    response.header.status_code = 404;
+    Response_header_field fields[3] = {server_field, date_field, connection};
     response.header.fields = fields;
     response.header.field_count = field_count;
     return response;
@@ -231,12 +240,13 @@ Response get_custom_response(Request *request, int method) {
       Response_header_field mod_time_field = get_modified_time_header_field(filepath);
       field_count++;
 
-      Response_header_field fields[5] = {
-        content_length_field, 
-        content_type_field, 
-        mod_time_field, 
-        server_field, 
-        date_field};
+      Response_header_field fields[6] = {
+        content_length_field,
+        content_type_field,
+        mod_time_field,
+        server_field,
+        date_field,
+      connection};
       response.header.fields = fields;
       response.header.field_count = field_count;
       return response;
@@ -244,10 +254,11 @@ Response get_custom_response(Request *request, int method) {
       Response_header_field content_length_field = get_header_field("Content-Length", "0");
       field_count++;
 
-      Response_header_field fields[3] = {
-        content_length_field, 
-        server_field, 
-        date_field};
+      Response_header_field fields[4] = {
+        content_length_field,
+        server_field,
+        date_field,
+      connection};
       response.header.fields = fields;
       response.header.field_count = field_count;
       return response;
@@ -273,7 +284,7 @@ char* get_mime_type(char *uri) {
   if (!extension) { // null extension
     printf("--- get_mime_type unknown\n");
     return "unknown";
-  } 
+  }
   printf("--- extension %s\n", extension);
   extension += 1; // ???? taken from Charlie's -> strcpy(mime, get_mime_type(ext+1));
   printf("--- extension+1 %s\n", extension);

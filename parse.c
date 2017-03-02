@@ -54,7 +54,7 @@ int parse(char *buffer, int size, Request *request) {
   if (state == STATE_CRLFCRLF) {
     request->header.field_count = 0;
     //TODO You will need to handle resizing this in parser.y
-    
+
     printf("pppppppp: before assigning header fields memory\n");
     request->header.fields = (Request_header_field *) malloc(sizeof(Request_header_field) * 1);
     printf("pppppppp: after assigning\n");
@@ -65,13 +65,15 @@ int parse(char *buffer, int size, Request *request) {
       return 0;
     } else { // **********
       printf("pppppppp: after yyparse failed\n");
-      return -1;
+      return 0; // just trying something
     }
   }
   //TODO Handle Malformed Requests
   printf("pppppppp: not a valid end_state\n");
   return -1;
 }
+
+
 
 int invalid_request_data(char *request_data) {
   //TODO: implement

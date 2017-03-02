@@ -38,7 +38,7 @@ class project1cp2tester(tester):
             print 'Bad Date header'
         except Exception:
             print 'Bad Date header: %s' % (headers['Date'])
-        
+
         self.pAssertEqual(int(headers['Content-Length']), length_content)
         #self.pAssertEqual(headers['Connection'].lower(), 'close')
 
@@ -74,10 +74,11 @@ class project1cp2tester(tester):
         for test in self.testsuite.tests:
             dummy_root, ext = os.path.splitext(test)
             response = requests.head(test % (self.testsuite.ip, self.testsuite.port), timeout=10.0)
-            self.check_headers(response.request.method,
+            print("hello here: ")
+            print(self.check_headers(response.request.method,
                                response.headers,
                                self.testsuite.tests[test][1],
-                               ext)
+                               ext))
         self.testsuite.scores['test_HEAD_headers'] = 1
 
     def test_HEAD(self):
@@ -119,7 +120,7 @@ class project1cp2tester(tester):
             self.skipTest("server failed to start. skip this test")
         time.sleep(1)
         for test in self.testsuite.tests:
-            # for checkpoint 2, this should time out; we told them to 
+            # for checkpoint 2, this should time out; we told them to
             # swallow the data and ignore
             try:
                 response = requests.post(test % (self.testsuite.ip, self.testsuite.port),\
@@ -152,7 +153,7 @@ class project1cp2grader(grader):
         self.process = 'nasty-hack'
         self.checkpoint = checkpoint
         self.tests = {
-            'http://%s:%d/index.html' : 
+            'http://%s:%d/index.html' :
             ('f5cacdcb48b7d85ff48da4653f8bf8a7c94fb8fb43407a8e82322302ab13becd', 802),
             'http://%s:%d/images/liso_header.png' :
             ('abf1a740b8951ae46212eb0b61a20c403c92b45ed447fe1143264c637c2e0786', 17431),

@@ -194,6 +194,15 @@ request_line: token t_sp text t_sp text t_crlf {
 	strcpy(parsing_request->header.http_version, $5);
 }
 
+/* WAS THROWING STUFF
+request_header: token ows t_colon ows text ows t_crlf {
+	YPRINTF("request_Header:\n%s\n%s\n",$1,$5);
+  strcpy(parsing_request->header.fields[parsing_request->header.field_count].name, $1);
+	strcpy(parsing_request->header.fields[parsing_request->header.field_count].value, $5);
+	parsing_request->header.field_count++;
+};
+*/
+
 request_header: token ows t_colon ows text ows t_crlf {
 	YPRINTF("request_Header:\n%s\n%s\n",$1,$5);
   strcpy(parsing_request->header.fields[parsing_request->header.field_count].name, $1);
@@ -201,14 +210,14 @@ request_header: token ows t_colon ows text ows t_crlf {
 	parsing_request->header.field_count++;
 };
 
-
 /*
  * You need to fill this rule, and you are done! You have all the assembly
  * needed. You may wish to define your own rules. Please read RFC 2616
  * and the annotated excerpted text on the course website. All the best!
  *
  */
-request: request_line request_header { YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+request: request_line { YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
+  | request_line request_header { YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
   | request_line request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
   | request_line request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
   | request_line request_header request_header request_header request_header {YPRINTF("parsing_request: Matched Success.\n");return SUCCESS;}
