@@ -171,9 +171,6 @@ Response get_custom_response(Request *request, int method) {
   strcpy(filepath, permanent_serve_folder);
   strcat(filepath, "/");
   strcat(filepath, request->header.uri + 1);
-
-
-  strcpy(response.header.http_version, "HTTP/1.1");
   strcpy(response.header.http_version, "HTTP/1.1");
   
   // default fields
@@ -192,7 +189,7 @@ Response get_custom_response(Request *request, int method) {
     response.header.field_count = field_count;
     return response;
   } else if (access(filepath, F_OK) == -1) { // throw 404 if file not accessible
-    response.header.status_code = 505;
+    response.header.status_code = 404;
     Response_header_field fields[2] = {server_field, date_field};
     response.header.fields = fields;
     response.header.field_count = field_count;
